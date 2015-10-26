@@ -6,15 +6,21 @@
   (testing "Parse the graph into a nice thing"
     (is (= 0 1))))
 
-(def test-graph
+(def test-graphƒ
   {:project-name "hx-test"
+
+   :transforms   [{:name            "Pipeline1"
+                   :transform-graph ["AbstractTransform/AbstractTransform.jar" "PythonScripts/AppendTest1.py"]}
+                  {:name            "Pipeline2"
+                   :transform-graph ["AbstractTransform/AbstractTransform.jar" "PythonScripts/AppendTest2.py"]}
+                  ]
    :sources      [{:package "ClickStream"} {:package "ShoppingCartClickStream"} {:package "CartTransaction"} {:package "EmailClickStream"}]
    :pipelines    [{:package "Pipeline1"} {:package "Pipeline2"} {:package "Pipeline3"} {:package "Pipeline4"} {:package "Pipeline5"} {:package "RepairJob"}]
    :sinks        [{:package "S3Sink"} {:package "EnhancedAdwordsSink"} {:package "EnhancedAdwordsSink"} {:package "CartTrans-Redshift"} {:package "EmailClicks-RedShift"} {:package "RawEmailS3"}]
    :edges        [{:origin "ClickStream" :targets ["Pipeline1"]}
                   {:origin "Pipeline1" :targets ["Pipeline2"]}
                   {:origin "Pipeline2" :target-type "error" :handler "GoogleStorage"} ;implied sink of gcs directory "Pipeline2/errors/blah"
-                  {:origin "Pipeline2" :origin-type "error" :targets ["RepairJob"]} ;implied source of gcs directory "Pipeline2/errors/blah"
+                  {:origin "Pipeline2" :origin-type "error" :targets ["RepairJob"]} ;impliedƒ source of gcs directory "Pipeline2/errors/blah"
                   {:origin "Pipeline2" :targets ["S3Sink" "EnhancedAdwordsSink"]}
                   {:origin "ShoppingCartClickStream" :targets ["Pipeline3"]}
                   {:origin "Pipeline3" :targets ["Pipeline2"]}
