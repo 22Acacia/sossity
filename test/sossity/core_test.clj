@@ -43,14 +43,14 @@
         pipeline-nodes (mapv :name (:pipelines test-graph))
         ]
         ;decorate nodes
-       (doseq [kv (:pipelines test-graph)]
+       (doseq [kv (:pipelines test-graph)]                  ;; do with some kinda reduce? add-attr-to-nodes returns an fn
          (doseq [metadata (dissoc kv :name)]
               (add-attr-to-nodes g (key metadata) (val metadata) (filter #(= (:name kv) %1) (nodes g))) ;find nodes with pipeline data and decorate them
            )
 
          )
 
-    )
+        g)                                                  ;return the graph?
 
   )
 
