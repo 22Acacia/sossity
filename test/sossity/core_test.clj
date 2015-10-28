@@ -4,6 +4,7 @@
             [loom.graph :refer :all]
             [loom.alg :refer :all]
             [loom.io :refer :all]
+            [loom.attr :refer :all]
 
             ))
 
@@ -38,33 +39,56 @@
 
 (defn create-dag
   [a-graph]
-  (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))
+  (let [g (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))
+        pipeline-nodes (mapv :name (:pipelines test-graph))
+        ]
+        ;decorate nodes
+       (doseq [kv (:pipelines test-graph)]
+         (doseq [metadata (dissoc kv :name)]
+              (add-attr-to-nodes g (key metadata) (val metadata) (filter #(= (:name kv) %1) (nodes g))) ;find nodes with pipeline data and decorate them
+           )
+
+         )
+
+    )
+
   )
 
-(defn create-pipelines
-  [a-graph]
 
+(defn output-topic
+  [node]
+  (str node "-out")
   )
 
-(defn stringify-pipeline
-[pipelines]
+(defn error-topic
+  [node]
+  (str node "-err")
   )
 
+(defn non-sink-pipes
+  [node]
+  ((juxt (fn [x] (output-topic x)) (fn [x] (error-topic x))) node)
+  )
+
+(defn sink-pipes
+  [node]
+  (str node "-error")
+  )
 
 
 (defn create-pubsubs
   [g]                                                 ;out and error for all sources and pipelines, just error for sinks. nodes with cardinality? of 1 have out/error, 0 have error
   (let [t (bf-traverse g)
         connected (filter #(> (out-degree g %1) 0) t)
-        edges (filter #(= (out-degree g %1) 0)  t)
+        ends (filter #(= (out-degree g %1) 0)  t)
         ]
     (flatten [
-              (map #((juxt (fn [x] (str x "-out")) (fn [x] (str x "-error"))) %1) connected)
-              (map #(str %1 "-error") connected)
+              (map non-sink-pipes connected)
+              (map sink-pipes ends)
               ])
-    )
+    ))
 
-  )
+
 
 (defn create-sources-with-dependencies
   [g]
@@ -74,18 +98,27 @@
   [g]
   )
 
-(defn create-dataflow-jobs                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
-  [g]
-  ;remember to generate dependency on edges like in example
+(defn create-dataflow-job                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
+  [node]
+  ;remember to generate dependency on edges like in example ... depth-first?
+  (let [output-topics (map output-topic (successors g node))
+        input-topic (map output-topic (predecessors g node))
+        ancestor-jobs (predecessors g node)
+        name node
+        class "Main.class"
+        ;error topic implied in name and handled in orchestrator
+        depends-on (flatten [output-topics input-topic ancestor-jobs])]
+    ;pipelines and jobs, TYPE.NAME like aws_instance.web
+                    )
 
   )
 
 
 (defn output-terraform-file
-  [item]
+  [g file]
   )
 
-
+; SCREW THIS,  OUTPUT JSON
 (defn stringify-items
   [item]
   (map #(str (clojure.string/replace (name (key %)) #"-" "_"  ) " = " (val %) "\n") item) )
