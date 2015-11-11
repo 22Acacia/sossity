@@ -142,7 +142,7 @@
 
 (defn output-provider
   [provider-map]
-  (assoc-in {} ["provider" "google"] (:provider provider-map))
+  (first (assoc-in {} ["provider" "google"] (:provider provider-map)))
   )
 
 (defn output-pubsub
