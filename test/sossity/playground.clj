@@ -1,6 +1,5 @@
 (ns sossity.playground)
 
-
 ;parse graph
 (def fields
   [["event"]
