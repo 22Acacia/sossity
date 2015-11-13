@@ -12,8 +12,16 @@
   (testing "Parse the graph into a nice thing"
     (is (= 0 1))))
 
+;need to use prismatic schema to verify map
+
+
 (def test-graph  ;each pipeline can only be defined in an origin once?
-  {:provider  {:account-file "blah.json" :project "hx-test" :region "us-central1"}
+  {
+   :opts      {:classpaths ["/home/bradfordstephens/proj", "/home/bradfordstephens/proj/transforms"] ;where all the jar files live. no trailing slash. may be overriden by env var in production? also be sure to build thick jars from angled-dream for deps
+
+                :region "us-central1" :maxnumworkers "1" :numworkers "1" :zone "europe-west1-c" :workermachinetype "n1-standard-1" :staginglocation "gs://hx-test/staging-eu"
+               }
+   :provider  {:account-file "blah.json" :project "hx-test"}
    :pipelines {"Pipeline1"
                {:transform-graph ["AbstractTransform/AbstractTransform.jar"]}
                "Pipeline2"
@@ -27,8 +35,8 @@
                #_"RepairJob"
                #_{:transform-graph ["PythonScripts/RepairClickstream.py"]}
                }
-   :sources   {"ClickStream" {:type "cdf"}
-                "ShoppingCartClickStream" {:type "kub"}
+   :sources   {"ClickStream"             {:type "cdf"}
+               "ShoppingCartClickStream" {:type "kub"}
                "CartTransaction"         {:type "kub"}
                "EmailClickstream"        {:type "kub"}
                }

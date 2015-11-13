@@ -20,7 +20,7 @@
 ;NEED ERROR CHECKING - make sure all sources and sinks are in execution graph, etc
 ;CASE-SENSITIVE
 
-(defn output-topic
+(defn topic
   [node project]
   (str "projects/" project "/topics/" node  "-out"))
 
@@ -30,7 +30,7 @@
 
 (defn non-sink-pipes
   [node project]
-  ((juxt #(output-topic % project) #(error-topic % project)) node))
+  ((juxt #(topic % project) #(error-topic % project)) node))
 
 (defn sink-pipes
   [node project]
@@ -88,20 +88,28 @@
   (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type)))
     (let [
           project (get-in a-graph [:provider :project])
-          output-topics (map #(output-topic % project) (non-sink-successors g node))
-          input-topics (map #(output-topic % project) (predecessors g node))
+          output-topics (map #(topic % project) (non-sink-successors g node))
+          input-topic (map #(topic % project) (predecessors g node)) ;not correct, a node should only have one "edge" predecessor b/c that's its queue
           ancestor-jobs (predecessors g node)
           error-topic (error-topic node project)
           name node
-          class "Main.class"
+          class (str node ".Main.class")                    ;need to make this a smart default
           output-depends (map #(str "google_pubsub." %) output-topics)
-          input-depends (map #(str "google_pubsub." %) input-topics)
+          input-depends (map #(str "google_pubsub." %) input-topic)
           ancestor-depends (map #(str "google_dataflow." %) ancestor-jobs)
-          depends-on (flatten [output-depends input-depends ancestor-depends error-topic])]
+          depends-on (flatten [output-depends input-depends ancestor-depends error-topic])
+          cli-map (map #(str "--" (key %) "=" (val %))
+                        (dissoc (:opts a-graph) :classpaths))
+          cli-project (str "--project=" project)
+          pipeline-args (str "--pubsubTopic=" (str input-topic))
+          classpath (clojure.string/join (interpose ":" (get-in a-graph [:opts :classpaths]))) ;classpath has only one dash! will terraform put at front of java call?
+          cli-args (str  cli-project (str "--project=" project) (clojure.string/join (interpose " " cli-map)) " " pipeline-args " " "--outputTopics=" (clojure.string/join (interpose "," output-topics)) )
+
+          ]
       ;pipelines and jobs, TYPE.NAME like aws_instance.web
 
       (-> (assoc-in {} ["resource" "google_dataflow" name "name"] name)
-          (update-in ["resource" "google_dataflow" name] merge {"name" name "class" class "depends_on" depends-on "project" project})))
+          (update-in ["resource" "google_dataflow" name] merge {"name" name "classpath" classpath "class" class "depends_on" depends-on "project" project "optional_args" cli-args})))
     )
 
   )
@@ -113,10 +121,7 @@
         jobs (filter (comp not nil?) (map #(create-dataflow-item g % a-graph) t))]
     jobs))
 
-(defn output-terraform-file
-  [a-graph file]
-  (spit file (create-terraform-json a-graph) )                                    ;NOTE -- need to remove first [ and last ]
-)
+
 
 (defn output-provider
   [provider-map]
@@ -129,16 +134,6 @@
    #(assoc-in {} ["resource" "google_pubsub" % "name"] %)
    pubsub-map))
 
-(defn create-terraform-json
-  [a-graph]
-  (let [
-        project (get-in a-graph [:provider :project])
-        g (create-dag a-graph)
-        provider (output-provider a-graph)
-        pubsubs (output-pubsub (create-pubsubs g project))
-        dataflows (create-dataflow-jobs g a-graph)]
-    (generate-string (concat provider pubsubs dataflows) {:pretty true})))
-
 (defn create-dag
   [a-graph]
   (let [g (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))]
@@ -150,3 +145,22 @@
         #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))
         ))                                    ;return the graph?
   )
+
+
+(defn create-terraform-json
+  [a-graph]
+  (let [
+        project (get-in a-graph [:provider :project])
+        g (create-dag a-graph)
+        provider (output-provider a-graph)
+        pubsubs (output-pubsub (create-pubsubs g project))
+        dataflows (create-dataflow-jobs g a-graph)
+        out (clojure.string/trim (generate-string (concat provider pubsubs dataflows) {:pretty true}))
+        ]
+    (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
+
+
+(defn output-terraform-file
+  [a-graph file]
+  (spit file (create-terraform-json a-graph) )          )                          ;NOTE -- need to remove first [ and last ]
+
