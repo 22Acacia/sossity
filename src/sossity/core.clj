@@ -101,10 +101,12 @@
           depends-on (flatten [(flatten [output-depends ancestor-depends]) error-topic input-depends])
           cli-map (map #(str "--" (key %) "=" (val %))
                         (dissoc (:opts a-graph) :classpaths))
-          cli-project (str "--project=" project)
-          pipeline-args (str "--pubsubTopic=" (str input-topic))
+          cli-project (str "--project=" project " ")
+          pipeline-args (str "--pubsubTopic=" (str input-topic) " ")
           classpath (clojure.string/join (interpose ":" (get-in a-graph [:opts :classpaths]))) ;classpath has only one dash! will terraform put at front of java call?
-          cli-args (str  cli-project (clojure.string/join (interpose " " cli-map)) " " pipeline-args " " "--outputTopics=" (clojure.string/join (interpose "," output-topics)) )
+          cli-args (str  cli-project
+                         (str "--pipelineName=" name " ")
+                         (clojure.string/join (interpose " " cli-map)) " " pipeline-args " " "--outputTopics=" (clojure.string/join (interpose "," output-topics)) )
 
           ]
       ;pipelines and jobs, TYPE.NAME like aws_instance.web
