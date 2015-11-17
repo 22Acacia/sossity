@@ -22,27 +22,27 @@
 
 (defn topic
   [node project]
-  (str "projects/" project "/topics/" node  "-out"))
+  (str "projects/" project "/topics/" node  "-in"))
 
 (defn error-topic
   [node project]
   (str "projects/" project "/topics/" node "-err"))
 
-(defn non-sink-pipes
+(defn non-source-pipes
   [node project]
   ((juxt #(topic % project) #(error-topic % project)) node))
 
-(defn sink-pipes
+(defn source-pipes
   [node project]
   (error-topic node project))
 
 (defn create-pubsubs
   [g project]                                                 ;out and error for all sources and pipelines, just error for sinks. nodes with cardinality? of 1 have out/error, 0 have error
   (let [t (bf-traverse g)
-        connected (filter #(> (out-degree g %1) 0) t)
-        ends (filter #(= (out-degree g %1) 0)  t)]
-    (into [] (flatten [(map #(non-sink-pipes % project) connected)
-                       (map #(sink-pipes % project) ends)]))))
+        connected (filter #(> (in-degree g %1) 0) t)
+        ends (filter #(= (in-degree g %1) 0)  t)]
+    (into [] (flatten [(map #(non-source-pipes % project) connected)
+                       (map #(source-pipes % project) ends)]))))
 
 
 (defn non-sink-successors
@@ -88,22 +88,23 @@
   (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type)))
     (let [
           project (get-in a-graph [:provider :project])
-          output-topics (map #(topic % project) (non-sink-successors g node))
-          input-topic (map #(topic % project) (predecessors g node)) ;not correct, a node should only have one "edge" predecessor b/c that's its queue
+          output-topics (map #(topic % project) (successors g node))
+          input-topic (topic node project)
           ancestor-jobs (predecessors g node)
           error-topic (error-topic node project)
           name node
-          class (str node ".Main.class")                    ;need to make this a smart default
+          #_class #_(str node ".Main.class")                    ;need to make this a smart default
+          class "com.acacia.dataflow.Main"
           output-depends (map #(str "google_pubsub." %) output-topics)
-          input-depends (map #(str "google_pubsub." %) input-topic)
+          input-depends (str "google_pubsub." input-topic)
           ancestor-depends (map #(str "google_dataflow." %) ancestor-jobs)
-          depends-on (flatten [output-depends input-depends ancestor-depends error-topic])
+          depends-on (flatten [(flatten [output-depends ancestor-depends]) error-topic input-depends])
           cli-map (map #(str "--" (key %) "=" (val %))
                         (dissoc (:opts a-graph) :classpaths))
           cli-project (str "--project=" project)
           pipeline-args (str "--pubsubTopic=" (str input-topic))
           classpath (clojure.string/join (interpose ":" (get-in a-graph [:opts :classpaths]))) ;classpath has only one dash! will terraform put at front of java call?
-          cli-args (str  cli-project (str "--project=" project) (clojure.string/join (interpose " " cli-map)) " " pipeline-args " " "--outputTopics=" (clojure.string/join (interpose "," output-topics)) )
+          cli-args (str  cli-project (clojure.string/join (interpose " " cli-map)) " " pipeline-args " " "--outputTopics=" (clojure.string/join (interpose "," output-topics)) )
 
           ]
       ;pipelines and jobs, TYPE.NAME like aws_instance.web
@@ -125,12 +126,11 @@
 
 (defn output-provider
   [provider-map]
-  (first (assoc-in {} ["provider" "google"] (:provider provider-map))))
+  {:provider {:google (assoc (:provider provider-map) :region (get-in provider-map [:opts :zone]))}})
 
 (defn output-pubsub
   [pubsub-map]
   (map
-    ;#({"resource" {"google_pubsub" {"a" {"name" "b"}}}} )
    #(assoc-in {} ["resource" "google_pubsub" % "name"] %)
    pubsub-map))
 
@@ -155,12 +155,13 @@
         provider (output-provider a-graph)
         pubsubs (output-pubsub (create-pubsubs g project))
         dataflows (create-dataflow-jobs g a-graph)
-        out (clojure.string/trim (generate-string (concat provider pubsubs dataflows) {:pretty true}))
+        combined (concat (flatten [provider pubsubs dataflows]))
+        out (clojure.string/trim (generate-string [combined] {:pretty true}))
         ]
-    (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
+    (subs out 1 (- (count out) 2))))                        ;trim first [ and last ] from json
 
 
 (defn output-terraform-file
   [a-graph file]
-  (spit file (create-terraform-json a-graph) )          )                          ;NOTE -- need to remove first [ and last ]
+  (spit file (create-terraform-json a-graph) :create true :append false :truncate true)          )                          ;NOTE -- need to remove first [ and last ]
 
