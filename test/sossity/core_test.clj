@@ -1,12 +1,5 @@
 (ns sossity.core-test
-  (:require [clojure.test :refer :all]
-            [sossity.core :refer :all]
-            [loom.graph :refer :all]
-            [loom.alg :refer :all]
-            [loom.io :refer :all]
-            [loom.attr :refer :all]
-            [cheshire.core :refer :all]
-            [traversy.lens :as t :refer :all :exclude [view update combine]]))
+  (:require [clojure.test :refer :all]))
 
 (deftest parse-graph
   (testing "Parse the graph into a nice thing"
@@ -16,10 +9,8 @@
 
 
 (def test-graph  ;each pipeline can only be defined in an origin once? ;IDEA: if a pipeline has 2 predecessors, combine their writes into one queue?
-  {
-   :opts      {:classpaths ["/home/bradfordstephens/proj", "/home/bradfordstephens/proj/transforms"] ;where all the jar files live. no trailing slash. may be overriden by env var in production? also be sure to build thick jars from angled-dream for deps
-                :maxNumwWorkers "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1" :stagingLocation "gs://hx-test/staging-eu"
-               }
+  {:opts      {:classpaths ["/home/bradfordstephens/proj", "/home/bradfordstephens/proj/transforms"] ;where all the jar files live. no trailing slash. may be overriden by env var in production? also be sure to build thick jars from angled-dream for deps
+               :maxNumwWorkers "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1" :stagingLocation "gs://hx-test/staging-eu"}
    :provider  {:account-file "blah.json" :project "hx-test"}
    :pipelines {"Pipeline1"
                {:transform-graph ["AbstractTransform/AbstractTransform.jar"]}
@@ -32,13 +23,11 @@
                "Pipeline5"
                {:transform-graph ["PythonScripts/Pipeline5.py"]}
                #_"RepairJob"
-               #_{:transform-graph ["PythonScripts/RepairClickstream.py"]}
-               }
+               #_{:transform-graph ["PythonScripts/RepairClickstream.py"]}}
    :sources   {"ClickStream"             {:type "cdf"}
                "ShoppingCartClickStream" {:type "kub"}
                "CartTransaction"         {:type "kub"}
-               "EmailClickstream"        {:type "kub"}
-               }
+               "EmailClickstream"        {:type "kub"}}
    :sinks     {"S3Sink"               {:type "kub"}
                "EnhancedAdwordsSink"  {:type "kub"}
                "CartTrans-BigQuery"   {:type "cdf"}
