@@ -52,19 +52,14 @@
                 :provider  {:credentials "${file(\"/home/pat/.secrets/DataGenerator-7405cf73a4e7.json\")}" :project "hx-test"}
                 :pipelines {"Pipeline1"
                             {:transform-graph ["target/pipeline1.jar"]}
-                            "Pipeline2"
-                            {:transform-graph ["target/pipeline2.jar"]}
-                            "Pipeline3"
-                            {:transform-graph ["target/pipeline3.jar"]}}
+                           }
                 :sources   {"Stream1" {:type "kub"}
-                            "Stream2" {:type "kub"}}
+                           }
                 :sinks     {"Sink1" {:type "kub" :bucket "sink1-test"}
-                            "Sink2" {:type "kub" :bucket "sink2-test"}}
+                            }
                 :edges     [{:origin "Stream1" :targets ["Pipeline1"]}
-                            {:origin "Stream2" :targets ["Pipeline3"]}
-                            {:origin "Pipeline1" :targets ["Pipeline2"]}
-                            {:origin "Pipeline2" :targets ["Sink1"]}
-                            {:origin "Pipeline3" :targets ["Sink2"]}]})
+
+                            {:origin "Pipeline1" :targets ["Sink1"]}]})
 
 (def mini-grapha
   {"A" ["B" "C"] "B" ["D"] "C" [] "D" ["E" "F"]})
