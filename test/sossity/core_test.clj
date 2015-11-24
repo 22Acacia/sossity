@@ -46,6 +46,26 @@
                {:origin "EmailClickstream" :targets ["Pipeline5" "RawEmailS3"]}
                {:origin "Pipeline5" :targets ["EmailClicks-BigQuery"]}]})
 
+(def tiny-test {:cluster   {:name "hxfstack" :initial_node_count 3 :master_auth {:username "hx" :password "fstack"}}
+                :opts      {:classpaths     ["/home/bradford/proj/pipeline-examples/target" "/home/bradford/proj/angled-dream/target"] ;where all the jar files live. no trailing slash. may be overriden by env var in production? also be sure to build thick jars from angled-dream for deps
+                            :maxNumwWorkers "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1" :stagingLocation "gs://hx-test/staging-eu"}
+                :provider  {:credentials "${file(\"/home/pat/.secrets/DataGenerator-7405cf73a4e7.json\")}" :project "hx-test"}
+                :pipelines {"Pipeline1"
+                            {:transform-graph ["target/pipeline1.jar"]}
+                            "Pipeline2"
+                            {:transform-graph ["target/pipeline2.jar"]}
+                            "Pipeline3"
+                            {:transform-graph ["target/pipeline3.jar"]}}
+                :sources   {"Stream1" {:type "kub"}
+                            "Stream2" {:type "kub"}}
+                :sinks     {"Sink1" {:type "kub"}
+                            "Sink2" {:type "kub"}}
+                :edges     [{:origin "Stream1" :targets ["Pipeline1"]}
+                            {:origin "Stream2" :targets ["Pipeline3"]}
+                            {:origin "Pipeline1" :targets ["Pipeline2"]}
+                            {:origin "Pipeline2" :targets ["Sink1"]}
+                            {:origin "Pipeline3" :targets ["Sink2"]}]})
+
 (def mini-grapha
   {"A" ["B" "C"] "B" ["D"] "C" [] "D" ["E" "F"]})
 
