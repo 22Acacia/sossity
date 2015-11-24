@@ -82,13 +82,19 @@
                                                     all-keys))))]
       df-source-sinks))
 
+(defn predecessor-sources
+  [g node a-graph]
+  (let [preds (set (predecessors g node))
+        sources (filter preds (set (-> (:sources a-graph) (t/view all-keys))))
+        source-names (mapv #(str sr-prefix "." %) sources)]
+    source-names))
+
 (defn predecessor-depends
   "Determine which predecessors of a node are sources vs. normal jobs"
   [g node a-graph]
   (let [preds (set (predecessors g node))
-        sources (filter preds (set (-> (:sources a-graph) (t/view all-keys))))
         jobs (filter preds (set (-> (:pipelines a-graph) (t/view all-keys))))
-        source-names (mapv #(str sr-prefix "." %) sources)
+        source-names (predecessor-sources g node a-graph)
         job-names (mapv #(str df-prefix "." %)  jobs)]
     (conj source-names job-names)))
 
@@ -121,17 +127,14 @@
         output {:name name :topic topic}]
     output))
 
-
 (defn create-bucket [item]
-  (let [
-        name (:bucket (val item))
+  (let [name (:bucket (val item))
         force_destroy true
         location "EU"
         output {:name name :force_destroy force_destroy :location location}]
     output))
 
-
-(defn create-storage-bucket [item a-graph])
+;NOTE: need to create some kind of multiplexer job to make it so multiple jobs can read from multiple sources? ugh
 
 (defn create-source-container
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
@@ -148,13 +151,19 @@
         output {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :optional_args {:post_route post_route :health_route health_route :stream_name stream_name}}]
     output))
 
+(defn determine-input-topic
+  [g node a-graph]
+  (if (empty? (predecessor-sources g node a-graph))
+    (topic-name node)
+    (source-topic-name (first (predecessors g node)))))
+
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
   [g node a-graph]
   ;remember to generate dependency on edges like in example ... depth-first?
   (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type)))
     (let [project (get-in a-graph [:provider :project])
           output-topics (map #(topic-name %) (successors g node))
-          input-topic (topic-name node)
+          input-topic (determine-input-topic g node a-graph)
           error-topic (error-topic-name node)
           ancestor-depends (predecessor-depends g node a-graph)
           name node
@@ -209,7 +218,6 @@
 
 (defn create-buckets [a-graph]
   (map #(output-bucket (create-bucket %)) (:sinks a-graph)))
-
 
 (defn output-container-cluster
   [a-graph]
