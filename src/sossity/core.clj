@@ -13,11 +13,11 @@
 (def sr-prefix "google_container_replica_controller")
 (def df-prefix "google_dataflow")
 (def pl-prefix "google_pubsub")
-(def container-node-config {"node_config" {"oauth_scopes" ["https://www.googleapis.com/auth/compute"
-                                                           "https://www.googleapis.com/auth/devstorage.read_only"
-                                                           "https://www.googleapis.com/auth/logging.write"
-                                                           "https://www.googleapis.com/auth/monitoring"
-                                                           "https://www.googleapis.com/auth/cloud-platform"]}})
+(def container-oauth-scopes {:oauth_scopes ["https://www.googleapis.com/auth/compute"
+                                            "https://www.googleapis.com/auth/devstorage.read_only"
+                                            "https://www.googleapis.com/auth/logging.write"
+                                            "https://www.googleapis.com/auth/monitoring"
+                                            "https://www.googleapis.com/auth/cloud-platform"]})
 
 (defn build-items [g items]
   (reduce #(add-attr %1 (key items) (key %2) (val %2)) g (val items)))
@@ -92,13 +92,44 @@
         job-names (mapv #(str df-prefix "." %)  jobs)]
     (conj source-names job-names)))
 
+(defn create-container-cluster
+  [a-graph]
+  (let [zone (get-in a-graph [:opts :zone])
+        output (assoc (assoc (:cluster a-graph) :zone zone) :node_config container-oauth-scopes)]
+    output))
+
+(defn create-sink-container [item a-graph]
+  (let [node (key item)
+        item_name (str node "-sink")
+        docker_image "gcr.io/hx-test/bearcub-sink"
+        sink_retry 3
+        sink_batch 100
+        sink_proj (get-in a-graph [:provider :project])
+        sink_sub (str node "_sub")
+        container_name "${google_container_cluster.hx_fstack_cluster.name}"
+        sink_bucket (:bucket (val item))
+        zone (get-in a-graph [:opts :zone])
+        output {:name item_name :docker_image docker_image :container_name container_name :zone zone :optional_args {:SINK_RETRY sink_retry :SINK_BATCH sink_batch :SINK_PROJ sink_proj
+                                                                                                                     :SINK_SUB sink_sub :SINK_BUCKET sink_bucket}}]
+
+    output))
+
+(defn create-sub [item a-graph]
+  (let [node (key item)
+        name (str node "_sub")
+        topic (topic-name node)
+        output {:name name :topic topic}]
+    output))
+
+(defn create-storage-bucket [item a-graph])
+
 (defn create-source-container
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [item a-graph]
   (let [node (key item)
         post_route (str "/" node "/post")
         health_route (str "/" node "/health")
-        item_name (str node "-producer")
+        item_name (str node "-source")
         docker_image "gcr.io/hx-test/prod-test"
         external_port "8080"
         stream_name (topic (source-topic-name node) (get-in a-graph [:provider :project]))
@@ -145,11 +176,27 @@
    #(assoc-in {} ["resource" "google_pubsub_topic" % "name"] %)
    pubsub-map))
 
-(defn output-producer [producer-map]
+(defn output-source [producer-map]
   {:resource {:google_container_replica_controller {(clojure.string/replace (:name producer-map) "-" "_") producer-map}}})
 
-(defn create-producers [a-graph]
-  (map #(output-producer (create-source-container % a-graph)) (:sources a-graph)))
+(defn create-sources [a-graph]
+  (map #(output-source (create-source-container % a-graph)) (:sources a-graph)))
+
+(defn output-sink [sink-map]
+  {:resource {:google_container_replica_controller {(clojure.string/replace (:name sink-map) "-" "_") sink-map}}})
+
+(defn output-sub [sub-map]
+  {:resource {:google_pubsub_subscription sub-map}})
+
+(defn create-sinks [a-graph]
+  (map #(output-sink (create-sink-container % a-graph)) (:sinks a-graph)))
+
+(defn create-subs [a-graph]
+  (map #(output-sub (create-sub % a-graph)) (:sinks a-graph)))
+
+(defn output-container-cluster
+  [a-graph]
+  {:resource {:google_container_cluster {:hx_fstack_cluster (create-container-cluster a-graph)}}})
 
 (defn create-dag
   [a-graph]
@@ -167,9 +214,12 @@
   (let [g (create-dag a-graph)
         provider (output-provider a-graph)
         pubsubs (output-pubsub (create-pubsubs g))
+        subscriptions (create-subs a-graph)
         dataflows (create-dataflow-jobs g a-graph)
-        producers (create-producers a-graph)
-        combined (concat (flatten [provider producers pubsubs dataflows]))
+        container-cluster (output-container-cluster a-graph)
+        sources (create-sources a-graph)
+        sinks (create-sinks a-graph)
+        combined (concat (flatten [provider pubsubs subscriptions container-cluster sources sinks dataflows]))
         out (clojure.string/trim (generate-string [combined] {:pretty true}))]
     (subs out 1 (- (count out) 2))))                        ;trim first [ and last ] from json
 

@@ -58,8 +58,8 @@
                             {:transform-graph ["target/pipeline3.jar"]}}
                 :sources   {"Stream1" {:type "kub"}
                             "Stream2" {:type "kub"}}
-                :sinks     {"Sink1" {:type "kub"}
-                            "Sink2" {:type "kub"}}
+                :sinks     {"Sink1" {:type "kub" :bucket "sink1-test"}
+                            "Sink2" {:type "kub" :bucket "sink2-test"}}
                 :edges     [{:origin "Stream1" :targets ["Pipeline1"]}
                             {:origin "Stream2" :targets ["Pipeline3"]}
                             {:origin "Pipeline1" :targets ["Pipeline2"]}
