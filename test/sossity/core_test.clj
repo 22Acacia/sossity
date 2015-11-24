@@ -51,12 +51,9 @@
                             :maxNumwWorkers "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1" :stagingLocation "gs://hx-test/staging-eu"}
                 :provider  {:credentials "${file(\"/home/pat/.secrets/DataGenerator-7405cf73a4e7.json\")}" :project "hx-test"}
                 :pipelines {"Pipeline1"
-                            {:transform-graph ["target/pipeline1.jar"]}
-                           }
-                :sources   {"Stream1" {:type "kub"}
-                           }
-                :sinks     {"Sink1" {:type "kub" :bucket "sink1-test"}
-                            }
+                            {:transform-graph ["target/pipeline1.jar"]}}
+                :sources   {"Stream1" {:type "kub"}}
+                :sinks     {"Sink1" {:type "kub" :bucket "sink1-test"}}
                 :edges     [{:origin "Stream1" :targets ["Pipeline1"]}
 
                             {:origin "Pipeline1" :targets ["Sink1"]}]})

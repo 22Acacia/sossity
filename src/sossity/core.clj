@@ -58,30 +58,6 @@
   [g node]
   (filter #(> (out-degree g %1) 0) (successors g node)))
 
-(defn create-sources-with-dependencies
-  [g])
-
-(defn create-sinks-with-dependencies
-  [g])
-
-#_(defn dataflow-only-node?
-    [t a-graph]
-    (let [df-source-sinks (set (-> a-graph (t/view (*>
-                                                    (+> (in [:sinks]) (in [:sources]))
-                                                    each
-                                                    (conditionally #(= (:type %) "cdf"))
-                                                    (in [:package])))))]
-      (some? (some (set [t]) df-source-sinks))))
-
-#_(defn get-submembers-keys
-    "good to know if something is a source or sink"
-    [a-graph k]
-    (let [df-source-sinks (set (-> a-graph (t/view (*>
-                                                    (+> (in [k]))
-                                                    each
-                                                    all-keys))))]
-      df-source-sinks))
-
 (defn predecessor-sources
   [g node a-graph]
   (let [preds (set (predecessors g node))
@@ -159,7 +135,6 @@
 
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
   [g node a-graph]
-  ;remember to generate dependency on edges like in example ... depth-first?
   (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type)))
     (let [project (get-in a-graph [:provider :project])
           output-topics (map #(topic-name %) (successors g node))
