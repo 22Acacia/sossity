@@ -121,6 +121,16 @@
         output {:name name :topic topic}]
     output))
 
+
+(defn create-bucket [item]
+  (let [
+        name (:bucket (val item))
+        force_destroy true
+        location "EU"
+        output {:name name :force_destroy force_destroy :location location}]
+    output))
+
+
 (defn create-storage-bucket [item a-graph])
 
 (defn create-source-container
@@ -188,11 +198,18 @@
 (defn output-sub [sub-map]
   {:resource {:google_pubsub_subscription sub-map}})
 
+(defn output-bucket [bucket-map]
+  {:resource {:google_storage_bucket {(clojure.string/replace (:name bucket-map) "-" "_") bucket-map}}})
+
 (defn create-sinks [a-graph]
   (map #(output-sink (create-sink-container % a-graph)) (:sinks a-graph)))
 
 (defn create-subs [a-graph]
   (map #(output-sub (create-sub % a-graph)) (:sinks a-graph)))
+
+(defn create-buckets [a-graph]
+  (map #(output-bucket (create-bucket %)) (:sinks a-graph)))
+
 
 (defn output-container-cluster
   [a-graph]
@@ -215,11 +232,12 @@
         provider (output-provider a-graph)
         pubsubs (output-pubsub (create-pubsubs g))
         subscriptions (create-subs a-graph)
+        buckets (create-buckets a-graph)
         dataflows (create-dataflow-jobs g a-graph)
         container-cluster (output-container-cluster a-graph)
         sources (create-sources a-graph)
         sinks (create-sinks a-graph)
-        combined (concat (flatten [provider pubsubs subscriptions container-cluster sources sinks dataflows]))
+        combined (concat (flatten [provider pubsubs subscriptions container-cluster sources sinks buckets dataflows]))
         out (clojure.string/trim (generate-string [combined] {:pretty true}))]
     (subs out 1 (- (count out) 2))))                        ;trim first [ and last ] from json
 
