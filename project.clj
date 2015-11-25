@@ -9,5 +9,7 @@
                  [traversy "0.4.0"]
                  [org.clojure/tools.cli "0.3.3"]
                  [com.google.apis/google-api-services-bigquery "v2-rev187-1.19.1"]]
-  :plugins [[lein-cljfmt "0.3.0"]])
+  :plugins [[lein-cljfmt "0.3.0"]]
+  :main sossity.core
+  :aot [sossity.core])
 

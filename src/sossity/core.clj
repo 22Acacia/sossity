@@ -167,14 +167,11 @@
 (defn output-pubsub
   [pubsub-map]
   (map
-   #(assoc-in {} ["resource" "google_pubsub_topic" % "name"] %)
+   #(assoc-in  {} ["resource" "google_pubsub_topic" % "name"] %)
    pubsub-map))
 
 (defn output-source [producer-map]
   {:resource {:google_container_replica_controller {(clojure.string/replace (:name producer-map) "-" "_") producer-map}}})
-
-(defn create-sources [a-graph]
-  (map #(output-source (create-source-container % a-graph)) (:sources a-graph)))
 
 (defn output-sink [sink-map]
   {:resource {:google_container_replica_controller {(clojure.string/replace (:name sink-map) "-" "_") sink-map}}})
@@ -184,6 +181,9 @@
 
 (defn output-bucket [bucket-map]
   {:resource {:google_storage_bucket {(clojure.string/replace (:name bucket-map) "-" "_") bucket-map}}})
+
+(defn create-sources [a-graph]
+  (map #(output-source (create-source-container % a-graph)) (:sources a-graph)))
 
 (defn create-sinks [a-graph]
   (map #(output-sink (create-sink-container % a-graph)) (:sinks a-graph)))
@@ -232,7 +232,7 @@
 
 (defn read-and-create
   [input output]
-  (output-terraform-file (read (slurp input)) output))
+  (output-terraform-file (read-string (slurp input)) output))
 
 (def cli-options
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
@@ -241,5 +241,5 @@
 (defn -main
   "Entry Point"
   [& args]
-  (let [opts (clojure.tools.cli/parse-opts args cli-options)]
+  (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))]
     (read-and-create (:config opts) (:output opts))))

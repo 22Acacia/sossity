@@ -1,14 +1,6 @@
 # sossity
 
-A Clojure library designed to ... well, that part is up to you.
+Pipeline orchestration.
 
-## Usage
-
-FIXME
-
-## License
-
-Copyright © 2015 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+  1. to build: lein uberjar
+  2. java -jar target/sossity-SNAPSHOT-standalone.jar -c "pipeline-config-file" -o "terraform-output-file"
