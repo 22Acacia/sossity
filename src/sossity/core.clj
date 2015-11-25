@@ -151,7 +151,7 @@
           opt-map {:project project :pubsubTopic (topic input-topic project) :pipelineName name :outputTopics
                    (clojure.string/join (interpose "," (map #(topic % project) output-topics)))}
           optional-args (merge cli-map opt-map)]
-      {name {:name name :classpath classpath :class class :depends_on depends-on :project project :optional_args optional-args}})))
+      {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
 
 (defn create-dataflow-jobs [g a-graph]
   (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf
