@@ -199,7 +199,7 @@
 
 (defn output-container-cluster
   [a-graph]
-  {:google_container_cluster {:hx_fstack_cluster (create-container-cluster a-graph)}})
+  {:hx_fstack_cluster (create-container-cluster a-graph)})
 
 (defn create-dag
   [a-graph]
