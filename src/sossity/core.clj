@@ -91,8 +91,8 @@
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
         sink_bucket (:bucket (val item))
         zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :docker_image docker_image :container_name container_name :zone zone :optional_args {:SINK_RETRY sink_retry :SINK_BATCH sink_batch :SINK_PROJ sink_proj
-                                                                                                                                :SINK_SUB   sink_sub :SINK_BUCKET sink_bucket}}}]
+        output {item_name {:name item_name :docker_image docker_image :container_name container_name :zone zone :optional_args {:SINK-RETRY sink_retry :SINK_BATCH sink-batch :SINK-PROJ sink_proj
+                                                                                                                                :SINK-SUB   sink_sub :SINK-BUCKET sink_bucket}}}]
 
     output))
 
@@ -124,7 +124,7 @@
         stream_name (topic (source-topic-name node) (get-in a-graph [:provider :project]))
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
         zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :optional_args {:post_route post_route :health_route health_route :stream_name stream_name}}}]
+        output {item_name {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :optional_args {:post-route post_route :health-route health_route :stream-name stream_name}}}]
     output))
 
 (defn determine-input-topic
