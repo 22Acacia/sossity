@@ -160,7 +160,7 @@
 
 (defn output-provider
   [provider-map]
-  {:provider {:google (assoc (:provider provider-map) :region (get-in provider-map [:opts :zone]))}})
+  {:google (assoc (:provider provider-map) :region (get-in provider-map [:opts :zone]))})
 
 (defn output-pubsub
   [pubsub-map]
@@ -224,9 +224,9 @@
         sources (apply merge (create-sources a-graph))
         sinks (apply merge (create-sinks a-graph))
         controllers {:google_container_replica_controller (apply merge sources sinks)}
-        combined {:resources (merge provider pubsubs subscriptions container-cluster controllers buckets dataflows)}
+        combined {:provider provider :resources (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
-    (subs out 1 (- (count out) 2))))                        ;trim first [ and last ] from json
+    (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
 
 (defn output-terraform-file
