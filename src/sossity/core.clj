@@ -91,8 +91,8 @@
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
         sink_bucket (:bucket (val item))
         zone (get-in a-graph [:opts :zone])
-        output {:name item_name :docker_image docker_image :container_name container_name :zone zone :optional_args {:SINK_RETRY sink_retry :SINK_BATCH sink_batch :SINK_PROJ sink_proj
-                                                                                                                     :SINK_SUB sink_sub :SINK_BUCKET sink_bucket}}]
+        output {item_name {:name item_name :docker_image docker_image :container_name container_name :zone zone :optional_args {:SINK_RETRY sink_retry :SINK_BATCH sink_batch :SINK_PROJ sink_proj
+                                                                                                                                :SINK_SUB   sink_sub :SINK_BUCKET sink_bucket}}}]
 
     output))
 
@@ -100,14 +100,14 @@
   (let [node (key item)
         name (str node "_sub")
         topic (topic-name node)
-        output {:name name :topic topic}]
+        output {name {:name name :topic topic}}]
     output))
 
 (defn create-bucket [item]
   (let [name (:bucket (val item))
         force_destroy true
         location "EU"
-        output {:name name :force_destroy force_destroy :location location}]
+        output {name {:name name :force_destroy force_destroy :location location}}]
     output))
 
 ;NOTE: need to create some kind of multiplexer job to make it so multiple jobs can read from multiple sources? ugh
@@ -124,7 +124,7 @@
         stream_name (topic (source-topic-name node) (get-in a-graph [:provider :project]))
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
         zone (get-in a-graph [:opts :zone])
-        output {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :optional_args {:post_route post_route :health_route health_route :stream_name stream_name}}]
+        output {item_name {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :optional_args {:post_route post_route :health_route health_route :stream_name stream_name}}}]
     output))
 
 (defn determine-input-topic
@@ -151,9 +151,7 @@
           opt-map {:project project :pubsubTopic (topic input-topic project) :pipelineName name :outputTopics
                    (clojure.string/join (interpose "," (map #(topic % project) output-topics)))}
           optional-args (merge cli-map opt-map)]
-      (-> (assoc-in {} ["resource" "google_dataflow" name "name"] name)
-          (update-in ["resource" "google_dataflow" name] merge {"name" name "classpath" classpath "class" class "depends_on"
-                                                                depends-on "project" project "optional_args" optional-args})))))
+      {name {:name name :classpath classpath :class class :depends_on depends-on :project project :optional_args optional-args}})))
 
 (defn create-dataflow-jobs [g a-graph]
   (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf
@@ -171,32 +169,37 @@
    pubsub-map))
 
 (defn output-source [producer-map]
-  {:resource {:google_container_replica_controller {(clojure.string/replace (:name producer-map) "-" "_") producer-map}}})
+  {:google_container_replica_controller {(clojure.string/replace (:name producer-map) "-" "_") producer-map}})
 
 (defn output-sink [sink-map]
-  {:resource {:google_container_replica_controller {(clojure.string/replace (:name sink-map) "-" "_") sink-map}}})
+  {:google_container_replica_controller {(clojure.string/replace (:name sink-map) "-" "_") sink-map}})
 
 (defn output-sub [sub-map]
-  {:resource {:google_pubsub_subscription sub-map}})
+  {:google_pubsub_subscription sub-map})
 
 (defn output-bucket [bucket-map]
-  {:resource {:google_storage_bucket {(clojure.string/replace (:name bucket-map) "-" "_") bucket-map}}})
+  {:google_storage_bucket {(clojure.string/replace (:name bucket-map) "-" "_") bucket-map}})
+
+
+(defn output-pubsub [pubsub-coll]
+  (map #(assoc-in {} [% :name] %) pubsub-coll)
+  )
 
 (defn create-sources [a-graph]
-  (map #(output-source (create-source-container % a-graph)) (:sources a-graph)))
+  (map #(create-source-container % a-graph) (:sources a-graph)))
 
 (defn create-sinks [a-graph]
-  (map #(output-sink (create-sink-container % a-graph)) (:sinks a-graph)))
+  (map #(create-sink-container % a-graph) (:sinks a-graph)))
 
 (defn create-subs [a-graph]
-  (map #(output-sub (create-sub % a-graph)) (:sinks a-graph)))
+  (map #(create-sub % a-graph) (:sinks a-graph)))
 
 (defn create-buckets [a-graph]
-  (map #(output-bucket (create-bucket %)) (:sinks a-graph)))
+  (map #(create-bucket %) (:sinks a-graph)))
 
 (defn output-container-cluster
   [a-graph]
-  {:resource {:google_container_cluster {:hx_fstack_cluster (create-container-cluster a-graph)}}})
+  {:google_container_cluster {:hx_fstack_cluster (create-container-cluster a-graph)}})
 
 (defn create-dag
   [a-graph]
@@ -209,18 +212,19 @@
         #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
 )
 
-(defn create-terraform-json
+(defn create-terraform-json                                 ;gotta be a better way to clean up these 'apply merges'
   [a-graph]
   (let [g (create-dag a-graph)
         provider (output-provider a-graph)
-        pubsubs (output-pubsub (create-pubsubs g))
-        subscriptions (create-subs a-graph)
-        buckets (create-buckets a-graph)
-        dataflows (create-dataflow-jobs g a-graph)
-        container-cluster (output-container-cluster a-graph)
-        sources (create-sources a-graph)
-        sinks (create-sinks a-graph)
-        combined (concat (flatten [provider pubsubs subscriptions container-cluster sources sinks buckets dataflows]))
+        pubsubs {:google_pubsub_topic (apply merge (output-pubsub (create-pubsubs g)))}
+        subscriptions {:google_pubsub_subscription (apply merge (create-subs a-graph))}
+        buckets {:google_storage_bucket (apply merge (create-buckets a-graph))}
+        dataflows {:google_dataflow (apply merge (create-dataflow-jobs g a-graph))}
+        container-cluster {:google_container_cluster (output-container-cluster a-graph)}
+        sources (apply merge (create-sources a-graph))
+        sinks (apply merge (create-sinks a-graph))
+        controllers {:google_container_replica_controller (apply merge sources sinks)}
+        combined {:resources (merge provider pubsubs subscriptions container-cluster controllers buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (subs out 1 (- (count out) 2))))                        ;trim first [ and last ] from json
 
