@@ -221,7 +221,7 @@
         sources (create-sources a-graph)
         sinks (create-sinks a-graph)
         combined (concat (flatten [provider pubsubs subscriptions container-cluster sources sinks buckets dataflows]))
-        out (clojure.string/trim (generate-string [combined] {:pretty true}))]
+        out (clojure.string/trim (generate-string combined {:pretty true}))]
     (subs out 1 (- (count out) 2))))                        ;trim first [ and last ] from json
 
 
