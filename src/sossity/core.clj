@@ -83,7 +83,7 @@
 (defn create-sink-container [item a-graph]
   (let [node (key item)
         item_name (str node "-sink")
-        docker_image "gcr.io/hx-test/bearcub-sink"
+        docker_image "gcr.io/hx-test/store-sink"
         sink_retry 3
         sink_batch 100
         sink_proj (get-in a-graph [:provider :project])
@@ -119,7 +119,7 @@
         post_route (str "/" node "/post")
         health_route (str "/" node "/health")
         item_name (str node "-source")
-        docker_image "gcr.io/hx-test/prod-test"
+        docker_image "gcr.io/hx-test/orcs"
         external_port "8080"
         stream_name (topic (source-topic-name node) (get-in a-graph [:provider :project]))
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
@@ -151,7 +151,7 @@
           opt-map {:project project :pubsubTopic (topic input-topic project) :pipelineName name :outputTopics
                    (clojure.string/join (interpose "," (map #(topic % project) output-topics)))}
           optional-args (merge cli-map opt-map)]
-      {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
+      {name {:name name :jarfile classpath :class class :depends_on depends-on :optional_args optional-args}})))
 
 (defn create-dataflow-jobs [g a-graph]
   (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf
