@@ -12,7 +12,7 @@
 
 (def sr-prefix "google_container_replica_controller")
 (def df-prefix "google_dataflow")
-(def pl-prefix "google_pubsub")
+(def pl-prefix "google_pubsub_topic")
 (def container-oauth-scopes {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
                                             "https://www.googleapis.com/auth/logging.write"
@@ -62,7 +62,7 @@
   [g node a-graph]
   (let [preds (set (predecessors g node))
         sources (filter preds (set (-> (:sources a-graph) (t/view all-keys))))
-        source-names (mapv #(str sr-prefix "." %) sources)]
+        source-names (mapv #(str sr-prefix "." % "-source") sources)]
     source-names))
 
 (defn predecessor-depends
@@ -145,7 +145,7 @@
           class "com.acacia.dataflow.Main"      ;need to make tshis a smart default
           output-depends (map #(str pl-prefix "." %) output-topics)
           input-depends (str pl-prefix "." input-topic)
-          depends-on (flatten [(flatten [output-depends ancestor-depends]) error-topic input-depends])
+          depends-on (flatten [(flatten [output-depends ancestor-depends]) (str pl-prefix "." error-topic) input-depends])
           cli-map (dissoc (:opts a-graph) :classpaths)
           classpath (clojure.string/join (interpose ":" (get-in a-graph [:opts :classpaths]))) ;classpath has only one dash!
           opt-map {:project project :pubsubTopic (topic input-topic project) :pipelineName name :outputTopics
@@ -224,7 +224,7 @@
         sources (apply merge (create-sources a-graph))
         sinks (apply merge (create-sinks a-graph))
         controllers {:google_container_replica_controller (apply merge sources sinks)}
-        combined {:provider provider :resources (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
+        combined {:provider provider :resource (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
