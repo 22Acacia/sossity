@@ -84,15 +84,15 @@
   (let [node (key item)
         item_name (clojure.string/lower-case (str node "-sink"))
         docker_image "gcr.io/hx-test/store-sink"
-        sink_retry 3
-        sink_batch 100
-        sink_proj (get-in a-graph [:provider :project])
-        sink_sub (str node "_sub")
+        num_retries 3
+        batch_size 100
+        proj_name (get-in a-graph [:provider :project])
+        sub_name (str node "_sub")
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
-        sink_bucket (:bucket (val item))
+        bucket_name (:bucket (val item))
         zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :image docker_image :container_name container_name :zone zone :env_args {:num_retries sink_retry :batch_size sink_batch :proj_name sink_proj
-                                                                                                                                :sub_name  sink_sub :bucket_name sink_bucket}}}]
+        output {item_name {:name item_name :image docker_image :container_name container_name :zone zone :env_args {:num_retries num_retries :batch_size batch_size :proj_name proj_name
+                                                                                                                    :sub_name  sub_name :bucket_name bucket_name}}}]
 
     output))
 
@@ -119,7 +119,7 @@
         post_route (str "/" node "/post")
         health_route (str "/" node "/health")
         item_name (str node "-source")
-        docker_image "gcr.io/hx-test/orcs"
+        docker_image "gcr.io/hx-test/source-master"
         external_port "8080"
         stream_name (topic (source-topic-name node) (get-in a-graph [:provider :project]))
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
@@ -146,13 +146,12 @@
           output-depends (map #(str pl-prefix "." %) output-topics)
           input-depends (str pl-prefix "." input-topic)
           depends-on (flatten [(flatten [output-depends ancestor-depends]) (str pl-prefix "." error-topic) input-depends])
-          cli-map (dissoc (:opts a-graph) :classpaths)
-          classpath (clojure.string/join (interpose ":" (get-in a-graph [:opts :classpaths]))) ;classpath has only one dash!
+          cli-map (dissoc (:opts a-graph) :composer-classpath)
+          classpath (clojure.string/join (interpose ":" (concat (get-in a-graph [:opts :composer-classpath]) (get-in a-graph [:pipelines node :transform-graph])))) ;classpath has only one dash!
           opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :outputTopics
                    (clojure.string/join (interpose "," (map #(topic % project) output-topics)))}
           optional-args (merge cli-map opt-map)]
-      {name {:name name :jarfile classpath :class class :depends_on depends-on :optional_args optional-args}})))
-
+      {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
 
 ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
 
@@ -165,28 +164,8 @@
   [provider-map]
   (assoc (:provider provider-map) :region (get-in provider-map [:opts :zone])))
 
-(defn output-pubsub
-  [pubsub-map]
-  (map
-   #(assoc-in  {} ["resource" "google_pubsub_topic" % "name"] %)
-   pubsub-map))
-
-(defn output-source [producer-map]
-  {:google_container_replica_controller {(clojure.string/replace (:name producer-map) "-" "_") producer-map}})
-
-(defn output-sink [sink-map]
-  {:google_container_replica_controller {(clojure.string/replace (:name sink-map) "-" "_") sink-map}})
-
-(defn output-sub [sub-map]
-  {:google_pubsub_subscription sub-map})
-
-(defn output-bucket [bucket-map]
-  {:google_storage_bucket {(clojure.string/replace (:name bucket-map) "-" "_") bucket-map}})
-
-
 (defn output-pubsub [pubsub-coll]
-  (map #(assoc-in {} [% :name] %) pubsub-coll)
-  )
+  (map #(assoc-in {} [% :name] %) pubsub-coll))
 
 (defn create-sources [a-graph]
   (map #(create-source-container % a-graph) (:sources a-graph)))
@@ -215,15 +194,14 @@
         #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
 )
 
-
-
 ;FIXME: need to have path_to_angleddream_bundled_jar? Or maybe just merge this. replica controller names have to match DNS entries, so no underscores or capital letters
+;FIXME: need to figure out when to have multiple subs to one pubsub, seems useful?
 
 (defn create-terraform-json                                 ;gotta be a better way to clean up these 'apply merges'
   [a-graph]
   (let [g (create-dag a-graph)
-        goo-provider {:provider :google (output-provider a-graph)}
-        cli-provider {:provider :googlecli goo-provider}
+        goo-provider {:google (output-provider a-graph)}
+        cli-provider {:googlecli (output-provider a-graph)}
         pubsubs {:google_pubsub_topic (apply merge (output-pubsub (create-pubsubs g)))}
         subscriptions {:google_pubsub_subscription (apply merge (create-subs a-graph))}
         buckets {:google_storage_bucket (apply merge (create-buckets a-graph))}
@@ -232,7 +210,7 @@
         sources (apply merge (create-sources a-graph))
         sinks (apply merge (create-sinks a-graph))
         controllers {:googlecli_container_replica_controller (apply merge sources sinks)}
-        combined {goo-provider cli-provider :resource (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
+        combined {:provider (merge goo-provider cli-provider) :resource (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
