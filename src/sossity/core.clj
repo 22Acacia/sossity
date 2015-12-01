@@ -91,7 +91,7 @@
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
         bucket_name (:bucket (val item))
         zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :image docker_image :container_name container_name :zone zone :env_args {:num_retries num_retries :batch_size batch_size :proj_name proj_name
+        output {item_name {:name item_name :docker_image docker_image :container_name container_name :zone zone :env_args {:num_retries num_retries :batch_size batch_size :proj_name proj_name
                                                                                                                     :sub_name  sub_name :bucket_name bucket_name}}}]
 
     output))
