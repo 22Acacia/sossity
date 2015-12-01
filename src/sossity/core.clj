@@ -13,6 +13,7 @@
 (def sr-prefix "googlecli_container_replica_controller")
 (def df-prefix "googlecli_dataflow")
 (def pl-prefix "google_pubsub_topic")
+(def replication-controller-name-regex #"[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)")
 (def container-oauth-scopes {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
                                             "https://www.googleapis.com/auth/logging.write"
@@ -80,6 +81,8 @@
         output (assoc (assoc (:cluster a-graph) :zone zone) :node_config container-oauth-scopes)]
     output))
 
+
+;;add depeendencies
 (defn create-sink-container [item a-graph]
   (let [node (key item)
         item_name (clojure.string/lower-case (str node "-sink"))
@@ -100,7 +103,7 @@
   (let [node (key item)
         name (str node "_sub")
         topic (topic-name node)
-        output {name {:name name :topic topic}}]
+        output {name {:name name :topic topic  :depends_on (str pl-prefix "." node) }}]
     output))
 
 (defn create-bucket [item]
@@ -112,6 +115,8 @@
 
 ;NOTE: need to create some kind of multiplexer job to make it so multiple jobs can read from multiple sources? ugh
 
+
+;;add depeendencies
 (defn create-source-container
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [item a-graph]
@@ -124,7 +129,7 @@
         stream_name (topic (source-topic-name node) (get-in a-graph [:provider :project]))
         container_name "${google_container_cluster.hx_fstack_cluster.name}"
         zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :optional_args {:post-route post_route :health-route health_route :stream-name stream_name}}}]
+        output {item_name {:name item_name :docker_image docker_image :external_port external_port :container_name container_name :zone zone :env_args {:post_route post_route :health_route health_route :stream_name stream_name}}}]
     output))
 
 (defn determine-input-topic
