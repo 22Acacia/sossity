@@ -10,8 +10,8 @@
             [traversy.lens :as t :refer :all :exclude [view update combine]])
   (:gen-class))
 
-(def sr-prefix "google_container_replica_controller")
-(def df-prefix "google_dataflow")
+(def sr-prefix "googlecli_container_replica_controller")
+(def df-prefix "googlecli_dataflow")
 (def pl-prefix "google_pubsub_topic")
 (def container-oauth-scopes {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
