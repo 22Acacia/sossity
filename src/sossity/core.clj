@@ -20,7 +20,7 @@
                                             "https://www.googleapis.com/auth/monitoring"
                                             "https://www.googleapis.com/auth/cloud-platform"]})
 
-(defn build-items [g items]
+#_(defn build-items [g items]                               ;buggy
   (reduce #(add-attr %1 (key items) (key %2) (val %2)) g (val items)))
 
 (defn build-annot [g item-set]
@@ -140,7 +140,7 @@
 
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
   [g node a-graph]
-  (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type)))
+  (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type))) ;always nil for now
     (let [project (get-in a-graph [:provider :project])
           output-topics (map #(topic-name %) (successors g node))
           input-topic (determine-input-topic g node a-graph)
