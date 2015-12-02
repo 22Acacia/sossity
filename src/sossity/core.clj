@@ -13,7 +13,7 @@
 (def sr-prefix "googlecli_container_replica_controller")
 (def df-prefix "googlecli_dataflow")
 (def pl-prefix "google_pubsub_topic")
-(def replication-controller-name-regex #"[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)")
+(def replication-controller-name-regex #"([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)")
 (def container-oauth-scopes {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
                                             "https://www.googleapis.com/auth/logging.write"
