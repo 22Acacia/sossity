@@ -103,7 +103,7 @@
   (let [node (key item)
         name (str node "_sub")
         topic (topic-name node)
-        output {name {:name name :topic topic  :depends_on (str pl-prefix "." node) }}]
+        output {name {:name name :topic topic :depends_on [(str pl-prefix "." topic)]}}]
     output))
 
 (defn create-bucket [item]
