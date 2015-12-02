@@ -241,12 +241,21 @@
   [input output]
   (output-terraform-file (read-string (slurp input)) output))
 
+(defn view-graph
+  [input]
+  (loom.io/view (create-dag (read-string (slurp input))))
+  )
+
 (def cli-options
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
-   ["-o" "--output OUTPUT" "path to output terraform file"]])
+   ["-o" "--output OUTPUT" "path to output terraform file"]
+   ["-v" "--view" "view visualization"]
+   ])
 
 (defn -main
   "Entry Point"
   [& args]
   (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))]
-    (read-and-create (:config opts) (:output opts))))
+    (do
+      (if (:view opts) (view-graph (:config opts)))
+      (read-and-create (:config opts) (:output opts)))))
