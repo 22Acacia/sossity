@@ -23,7 +23,7 @@
 #_(defn build-items [g items]                               ;buggy
   (reduce #(add-attr %1 (key items) (key %2) (val %2)) g (val items)))
 
-(defn build-annot [g item-set]
+#_(defn build-annot [g item-set]
   (reduce #(build-items %1 %2) g item-set))
 
 ;tag sources and sinks
@@ -191,10 +191,12 @@
 (defn create-dag
   [a-graph]
   (let [g (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))]
+
+    g
     ;decorate nodes
-    (-> (build-annot g (:pipelines a-graph))
-        (build-annot  (:sources a-graph))
-        (build-annot  (:sinks a-graph))
+    #_(-> #_(build-annot g (:pipelines a-graph))
+        #_(build-annot  (:sources a-graph))
+        #_(build-annot  (:sinks a-graph))
         #_(add-attr-to-nodes :type :source (get-submembers-keys a-graph :sources))
         #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
 )
