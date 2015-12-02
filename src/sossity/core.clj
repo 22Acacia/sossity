@@ -138,9 +138,19 @@
     (topic-name node)
     (source-topic-name (first (predecessors g node)))))
 
+(defn is-dataflow-job?
+  [node a-graph]
+  (or
+    (not (= nil (get-in a-graph [:pipelines node])))
+    (= "cdf" (get-in a-graph [:sources node :type]))
+    (= "cdf" (get-in a-graph [:sinks node :type]))
+    )
+  )
+
+
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
   [g node a-graph]
-  (if (or (= nil (attr g node :type)) (= "cdf" (attr g node :type))) ;always nil for now
+  (if (is-dataflow-job? node a-graph) ;always nil for now
     (let [project (get-in a-graph [:provider :project])
           output-topics (map #(topic-name %) (successors g node))
           input-topic (determine-input-topic g node a-graph)
@@ -194,7 +204,7 @@
 
     g
     ;decorate nodes
-    #_(-> #_(build-annot g (:pipelines a-graph))
+    #_(->#_(build-annot g (:pipelines a-graph))
         #_(build-annot  (:sources a-graph))
         #_(build-annot  (:sinks a-graph))
         #_(add-attr-to-nodes :type :source (get-submembers-keys a-graph :sources))
