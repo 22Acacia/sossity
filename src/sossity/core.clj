@@ -249,7 +249,7 @@
 (def cli-options
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
-   ["-v" "--view" "view visualization"]
+   ["-v" "--view" "view visualization, requires graphviz installed"]
    ])
 
 (defn -main
