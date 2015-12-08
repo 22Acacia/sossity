@@ -155,15 +155,15 @@
           output-topics (map #(topic-name %) (successors g node))
           input-topic (determine-input-topic g node a-graph)
           error-topic (error-topic-name node)
-          ancestor-depends (predecessor-depends g node a-graph)
+          predecessor-depends (predecessor-depends g node a-graph)
           name node
           class "com.acacia.angleddream.Main"      ;need to make tshis a smart default
           output-depends (map #(str pl-prefix "." %) output-topics)
           input-depends (str pl-prefix "." input-topic)
-          depends-on (flatten [(flatten [output-depends ancestor-depends]) (str pl-prefix "." error-topic) input-depends])
+          depends-on (flatten [(flatten [output-depends predecessor-depends]) (str pl-prefix "." error-topic) input-depends])
           cli-map (dissoc (:opts a-graph) :composer-classpath)
           classpath (clojure.string/join (interpose ":" (concat (get-in a-graph [:opts :composer-classpath]) (get-in a-graph [:pipelines node :transform-graph])))) ;classpath has only one dash!
-          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :outputTopics
+          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic :outputTopics
                    (clojure.string/join (interpose "," (map #(topic % project) output-topics)))}
           optional-args (merge cli-map opt-map)]
       {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
