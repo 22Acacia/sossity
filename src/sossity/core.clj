@@ -35,6 +35,41 @@
 (defn source-topic-name [topic] (str topic "_out"))
 (defn error-topic-name [topic] (str topic "_err"))
 
+
+
+(defn is-dataflow-job?
+  [node a-graph]
+  (or
+    (not (= nil (get-in a-graph [:pipelines node])))
+    (= "cdf" (get-in a-graph [:sources node :type]))
+    (= "cdf" (get-in a-graph [:sinks node :type]))
+    (= "bgq" (get-in a-graph [:sources node :type]))
+    (= "bgq" (get-in a-graph [:sinks node :type]))
+    )
+  )
+
+(defn is-bigquery?
+  [node a-graph]
+  (or
+    (= "bgq" (get-in a-graph [:sources node :type]))
+    (= "bgq" (get-in a-graph [:sinks node :type]))
+    )
+  )
+
+(defn is-pipeline?
+  [node a-graph]
+  (or
+    (= "cdf" (get-in a-graph [:sources node :type]))
+    (= "cdf" (get-in a-graph [:sinks node :type]))
+    )
+  )
+
+(defn is-cloud-storage?
+  [node sub-graph]
+  (= "gcs" (get-in sub-graph [node :type]))
+  )
+
+
 (defn topic
   [node project]
   (str "projects/" project "/topics/" node))
@@ -84,34 +119,38 @@
 
 ;;add depeendencies
 (defn create-sink-container [item a-graph]
-  (let [node (key item)
-        item_name (clojure.string/lower-case (str node "-sink"))
-        docker_image "gcr.io/hx-test/store-sink"
-        num_retries 3
-        batch_size 100
-        proj_name (get-in a-graph [:provider :project])
-        sub_name (str node "_sub")
-        container_name "${google_container_cluster.hx_fstack_cluster.name}"
-        bucket_name (:bucket (val item))
-        zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :docker_image docker_image :container_name container_name :zone zone :env_args {:num_retries num_retries :batch_size batch_size :proj_name proj_name
-                                                                                                                    :sub_name  sub_name :bucket_name bucket_name}}}]
 
-    output))
+  (if (is-pipeline? (key item) a-graph)
+    (let [node (key item)
+          item_name (clojure.string/lower-case (str node "-sink"))
+          docker_image "gcr.io/hx-test/store-sink"
+          num_retries 3
+          batch_size 100
+          proj_name (get-in a-graph [:provider :project])
+          sub_name (str node "_sub")
+          container_name "${google_container_cluster.hx_fstack_cluster.name}"
+          bucket_name (:bucket (val item))
+          zone (get-in a-graph [:opts :zone])
+          output {item_name {:name item_name :docker_image docker_image :container_name container_name :zone zone :env_args {:num_retries num_retries :batch_size batch_size :proj_name proj_name
+                                                                                                                             :sub_name    sub_name :bucket_name bucket_name}}}]
+
+      output)))
 
 (defn create-sub [item a-graph]
-  (let [node (key item)
-        name (str node "_sub")
-        topic (topic-name node)
-        output {name {:name name :topic topic :depends_on [(str pl-prefix "." topic)]}}]
-    output))
+  (if (is-pipeline? (key item) a-graph)
+    (let [node (key item)
+          name (str node "_sub")
+          topic (topic-name node)
+          output {name {:name name :topic topic :depends_on [(str pl-prefix "." topic)]}}]
+      output)))
 
-(defn create-bucket [item]
-  (let [name (:bucket (val item))
-        force_destroy true
-        location "EU"
-        output {name {:name name :force_destroy force_destroy :location location}}]
-    output))
+(defn create-bucket [item a-graph]
+  (if (is-cloud-storage? (key item) (:sinks a-graph))
+    (let [name (:bucket (val item))
+          force_destroy true
+          location "EU"
+          output {name {:name name :force_destroy force_destroy :location location}}]
+      output)))
 
 ;NOTE: need to create some kind of multiplexer job to make it so multiple jobs can read from multiple sources? ugh
 
@@ -138,14 +177,13 @@
     (topic-name node)
     (source-topic-name (first (predecessors g node)))))
 
-(defn is-dataflow-job?
-  [node a-graph]
-  (or
-    (not (= nil (get-in a-graph [:pipelines node])))
-    (= "cdf" (get-in a-graph [:sources node :type]))
-    (= "cdf" (get-in a-graph [:sinks node :type]))
-    )
+
+(defn endpoint-opts
+  "parent is :sources or :sinks"
+  [parent node a-graph]
+  (dissoc (get-in a-graph [parent node]) :type)
   )
+
 
 
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
@@ -163,15 +201,16 @@
           depends-on (flatten [(flatten [output-depends predecessor-depends]) (str pl-prefix "." error-topic) input-depends])
           cli-map (dissoc (:opts a-graph) :composer-classpath)
           classpath (clojure.string/join (interpose ":" (concat (get-in a-graph [:opts :composer-classpath]) (get-in a-graph [:pipelines node :transform-graph])))) ;classpath has only one dash!
-          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic :outputTopics
-                   (clojure.string/join (interpose "," (map #(topic % project) output-topics)))}
-          optional-args (merge cli-map opt-map)]
+          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic}
+          opt-map (if (is-pipeline? node a-graph) (assoc opt-map :outputTopics (clojure.string/join (interpose "," (map #(topic % project) output-topics)))))
+          endpoint-opt-map (endpoint-opts :sinks node a-graph)
+          optional-args (apply merge cli-map opt-map endpoint-opt-map)]
       {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
 
 ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
 
 (defn create-dataflow-jobs [g a-graph]
-  (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf
+  (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf or bgq
         jobs (filter (comp not nil?) (map #(create-dataflow-item g % a-graph) t))]
     jobs))
 
@@ -192,7 +231,7 @@
   (map #(create-sub % a-graph) (:sinks a-graph)))
 
 (defn create-buckets [a-graph]
-  (map #(create-bucket %) (:sinks a-graph)))
+  (map #(create-bucket % a-graph) (:sinks a-graph)))
 
 (defn output-container-cluster
   [a-graph]
@@ -250,6 +289,7 @@
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
+   ["-cr" "--credentials" "location to credentials file for terraform to use"]
    ])
 
 (defn -main
