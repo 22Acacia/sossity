@@ -289,7 +289,7 @@
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
-   ["-cr" "--credentials" "location to credentials file for terraform to use"]
+   #_["-cr" "--credentials" "location to credentials file for terraform to use"]
    ])
 
 (defn -main
