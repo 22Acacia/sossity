@@ -5,3 +5,10 @@ machine:
 test:
   override:
    - echo 'Tests are fine! Fine, why do you ask?'
+
+deployment:
+  demo:
+    branch: circle-ci-dev
+    commands:
+      - cd $HOME/$CIRCLE_PROJECT_REPONAME && lein uberjar
+      - gsutil cp $HOME/$CIRCLE_PROJECT_REPONAME/target/sossity-0.1.0-SNAPSHOT-standalone.jar gs://build-artifacts-public-eu/sossity-standalone.jar
