@@ -201,7 +201,7 @@
           depends-on (flatten [(flatten [output-depends predecessor-depends]) (str pl-prefix "." error-topic) input-depends])
           cli-map (dissoc (:opts a-graph) :composer-classpath)
           classpath (clojure.string/join (interpose ":" (concat (get-in a-graph [:opts :composer-classpath]) (get-in a-graph [:pipelines node :transform-graph])))) ;classpath has only one dash!
-          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic :project project}
+          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic}
           opt-mapb (assoc opt-map :outputTopics (clojure.string/join (interpose "," (map #(topic % project) output-topics))))
           endpoint-opt-map (endpoint-opts :sinks node a-graph)
           optional-args (apply merge cli-map opt-mapb endpoint-opt-map)]
