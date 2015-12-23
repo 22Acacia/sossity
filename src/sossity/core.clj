@@ -202,9 +202,9 @@
           cli-map (dissoc (:opts a-graph) :composer-classpath)
           classpath (clojure.string/join (interpose ":" (concat (get-in a-graph [:opts :composer-classpath]) (get-in a-graph [:pipelines node :transform-graph])))) ;classpath has only one dash!
           opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic}
-          opt-map (if (is-pipeline? node a-graph) (assoc opt-map :outputTopics (clojure.string/join (interpose "," (map #(topic % project) output-topics)))))
+          opt-mapb (assoc opt-map :outputTopics (clojure.string/join (interpose "," (map #(topic % project) output-topics))))
           endpoint-opt-map (endpoint-opts :sinks node a-graph)
-          optional-args (apply merge cli-map opt-map endpoint-opt-map)]
+          optional-args (apply merge cli-map opt-mapb endpoint-opt-map)]
       {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
 
 ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
