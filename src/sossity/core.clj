@@ -120,7 +120,7 @@
 ;;add depeendencies
 (defn create-sink-container [item a-graph]
 
-  (if (is-pipeline? (key item) a-graph)
+  (if-not (is-pipeline? (key item) a-graph)
     (let [node (key item)
           item_name (clojure.string/lower-case (str node "-sink"))
           docker_image "gcr.io/hx-test/store-sink"
