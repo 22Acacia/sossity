@@ -137,7 +137,7 @@
       output)))
 
 (defn create-sub [item a-graph]
-  (if (is-pipeline? (key item) a-graph)
+  (if-not (is-pipeline? (key item) a-graph)
     (let [node (key item)
           name (str node "_sub")
           topic (topic-name node)
