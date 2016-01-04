@@ -6,7 +6,7 @@
 
 (defn create-parsed-output [g]
   (cheshire.core/decode (create-terraform-json
-           g) true))
+                         g) true))
 
 (def small-test-gr
   {:cluster   {:name "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}}
@@ -361,15 +361,13 @@
                                   :bigQueryDataset "hx-test",
                                   :pubsubTopic "projects/hx-test/topics/orionbq_in",
                                   :numWorkers "1",
-                                  :outputTopics "",
                                   :pipelineName "orionbq",
                                   :maxNumWorkers "1"}})
 
 (def bq-pubsub-tops (->
-                      big-pubsub-tops
-                      (assoc :orionbq_err {:name "orionbq_err"})
-                      (assoc :orionbq_in {:name "orionbq_in"})
-                      ))
+                     big-pubsub-tops
+                     (assoc :orionbq_err {:name "orionbq_err"})
+                     (assoc :orionbq_in {:name "orionbq_in"})))
 
 ;NOTE -- need to have some kind of 'refresh' workflow since we may be defing/undefing in a work session
 
@@ -388,6 +386,5 @@
       (testing "Replica controllers"
         (is (= big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller]))))
       (testing "Storage buckets"
-        (is (= big-bucket (get-in g [:resource :google_storage_bucket]))))
-      )))
+        (is (= big-bucket (get-in g [:resource :google_storage_bucket])))))))
 
