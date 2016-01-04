@@ -1,6 +1,6 @@
 (ns sossity.core
   (:require [clojure.test :refer :all]
-            [sossity.core :refer :all]
+            #_[sossity.core :refer :all]
             [loom.graph :refer :all]
             [loom.alg :refer :all]
             [loom.io :refer :all]
@@ -20,11 +20,20 @@
                                             "https://www.googleapis.com/auth/monitoring"
                                             "https://www.googleapis.com/auth/cloud-platform"]})
 
-#_(defn build-items [g items]                               ;buggy
-  (reduce #(add-attr %1 (key items) (key %2) (val %2)) g (val items)))
+(defn item-metadata [node a-graph]
+  (or (get (:pipelines a-graph) node) (get (:sources a-graph) node) (get (:sinks a-graph) node)))
 
-#_(defn build-annot [g item-set]
-  (reduce #(build-items %1 %2) g item-set))
+
+(defn build-items [g node md]                               ;buggy
+  (reduce #(add-attr %1 node (key %2) (val %2)) g md))
+
+(defn build-annot [g nodes a-graph]
+  (reduce #(build-items %1 %2 (item-metadata %2 a-graph)) g nodes))
+
+(defn anns [g a-graph]
+  (let [t (bf-traverse g)] ;traverse graph to get list of nodes
+    (build-annot g t a-graph)))
+
 
 ;tag sources and sinks
 
@@ -35,40 +44,30 @@
 (defn source-topic-name [topic] (str topic "_out"))
 (defn error-topic-name [topic] (str topic "_err"))
 
-
-
 (defn is-dataflow-job?
   [node a-graph]
   (or
-    (not (= nil (get-in a-graph [:pipelines node])))
-    (= "cdf" (get-in a-graph [:sources node :type]))
-    (= "cdf" (get-in a-graph [:sinks node :type]))
-    (= "bgq" (get-in a-graph [:sources node :type]))
-    (= "bgq" (get-in a-graph [:sinks node :type]))
-    )
-  )
+   (not (= nil (get-in a-graph [:pipelines node])))
+   (= "cdf" (get-in a-graph [:sources node :type]))
+   (= "cdf" (get-in a-graph [:sinks node :type]))
+   (= "bq" (get-in a-graph [:sources node :type]))
+   (= "bq" (get-in a-graph [:sinks node :type]))))
 
 (defn is-bigquery?
   [node a-graph]
   (or
-    (= "bgq" (get-in a-graph [:sources node :type]))
-    (= "bgq" (get-in a-graph [:sinks node :type]))
-    )
-  )
+   (= "bq" (get-in a-graph [:sources node :type]))
+   (= "bq" (get-in a-graph [:sinks node :type]))))
 
 (defn is-pipeline?
   [node a-graph]
   (or
-    (= "cdf" (get-in a-graph [:sources node :type]))
-    (= "cdf" (get-in a-graph [:sinks node :type]))
-    )
-  )
+   (= "cdf" (get-in a-graph [:sources node :type]))
+   (= "cdf" (get-in a-graph [:sinks node :type]))))
 
 (defn is-cloud-storage?
   [node sub-graph]
-  (= "gcs" (get-in sub-graph [node :type]))
-  )
-
+  (= "gcs" (get-in sub-graph [node :type])))
 
 (defn topic
   [node project]
@@ -116,10 +115,8 @@
         output (assoc (assoc (:cluster a-graph) :zone zone) :node_config container-oauth-scopes)]
     output))
 
-
 ;;add depeendencies
 (defn create-sink-container [item a-graph]
-
   (if-not (is-pipeline? (key item) a-graph)
     (let [node (key item)
           item_name (clojure.string/lower-case (str node "-sink"))
@@ -177,14 +174,10 @@
     (topic-name node)
     (source-topic-name (first (predecessors g node)))))
 
-
 (defn endpoint-opts
   "parent is :sources or :sinks"
   [parent node a-graph]
-  (dissoc (get-in a-graph [parent node]) :type)
-  )
-
-
+  (dissoc (get-in a-graph [parent node]) :type))
 
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
   [g node a-graph]
@@ -243,11 +236,11 @@
 
     g
     ;decorate nodes
-    #_(->#_(build-annot g (:pipelines a-graph))
-        #_(build-annot  (:sources a-graph))
-        #_(build-annot  (:sinks a-graph))
-        #_(add-attr-to-nodes :type :source (get-submembers-keys a-graph :sources))
-        #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
+    #_(->#_ (build-annot g (:pipelines a-graph))
+            #_(build-annot  (:sources a-graph))
+            #_(build-annot  (:sinks a-graph))
+            #_(add-attr-to-nodes :type :source (get-submembers-keys a-graph :sources))
+            #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
 )
 
 ;FIXME: need to have path_to_angleddream_bundled_jar? Or maybe just merge this. replica controller names have to match DNS entries, so no underscores or capital letters
@@ -282,15 +275,13 @@
 
 (defn view-graph
   [input]
-  (loom.io/view (create-dag (read-string (slurp input))))
-  )
+  (loom.io/view (create-dag (read-string (slurp input)))))
 
 (def cli-options
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
-   #_["-cr" "--credentials" "location to credentials file for terraform to use"]
-   ])
+   #_["-cr" "--credentials" "location to credentials file for terraform to use"]])
 
 (defn -main
   "Entry Point"
