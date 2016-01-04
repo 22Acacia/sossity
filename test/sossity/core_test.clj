@@ -1,7 +1,12 @@
 (ns sossity.core-test
   (:require [sossity.core :refer :all]
             [clojure.test :refer :all]
-            [cheshire.core :refer :all]))
+            [cheshire.core :refer :all]
+            [clojure.tools.namespace.repl :refer :all]))
+
+(defn create-parsed-output [g]
+  (decode (create-terraform-json
+           g) true))
 
 (def small-test-gr
   {:cluster   {:name "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}}
@@ -16,16 +21,15 @@
    :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
                {:origin "pipeline1bts" :targets ["sink1bts"]}]})
 
-(defn create-parsed-output [g]
-  (decode (create-terraform-json
-           g) true))
-
-(def sm-provider {:google             {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
-                                       :project     "hx-test",
-                                       :region      "europe-west1-c"},
+(def sm-provider {:google  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
+                            :project     "hx-test",
+                            :region      "europe-west1-c"},
                   :googlecli {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
                               :project     "hx-test",
                               :region      "europe-west1-c"}})
+
+{:stream1bts_err {:name "stream1bts_err"}, :orion_out {:name "orion_out"}, :pipeline2bts_in {:name "pipeline2bts_in"}, :orionpipe_in {:name "orionpipe_in"}, :sink1bts_in {:name "sink1bts_in"}, :orion_err {:name "orion_err"}, :pipeline2bts_err {:name "pipeline2bts_err"}, :sink3bts_in {:name "sink3bts_in"}, :orionsink_err {:name "orionsink_err"}, :sink2bts_in {:name "sink2bts_in"}, :pipeline3bts_err {:name "pipeline3bts_err"}, :stream1bts_out {:name "stream1bts_out"}, :sink1bts_err {:name "sink1bts_err"}, :pipeline1bts_in {:name "pipeline1bts_in"}, :sink3bts_err {:name "sink3bts_err"}, :sink2bts_err {:name "sink2bts_err"}, :orionpipe_err {:name "orionpipe_err"}, :pipeline1bts_err {:name "pipeline1bts_err"}, :pipeline3bts_in {:name "pipeline3bts_in"}, :orionsink_in {:name "orionsink_in"}}
+{:stream1bts_err {:name "stream1bts_err"}, :orion_out {:name "orion_out"}, :pipeline2bts_in {:name "pipeline2bts_in"}, :orionbq_err {:name "orionbq_err"}, :orionpipe_in {:name "orionpipe_in"}, :sink1bts_in {:name "sink1bts_in"}, :orion_err {:name "orion_err"}, :pipeline2bts_err {:name "pipeline2bts_err"}, :sink3bts_in {:name "sink3bts_in"}, :orionsink_err {:name "orionsink_err"}, :sink2bts_in {:name "sink2bts_in"}, :pipeline3bts_err {:name "pipeline3bts_err"}, :stream1bts_out {:name "stream1bts_out"}, :sink1bts_err {:name "sink1bts_err"}, :pipeline1bts_in {:name "pipeline1bts_in"}, :sink3bts_err {:name "sink3bts_err"}, :sink2bts_err {:name "sink2bts_err"}, :orionpipe_err {:name "orionpipe_err"}, :pipeline1bts_err {:name "pipeline1bts_err"}, :orionbq_in {:name "orionbq_in"}, :pipeline3bts_in {:name "pipeline3bts_in"}, :orionsink_in {:name "orionsink_in"}}
 
 (def sm-pubsub-tops
   {:pipeline1bts_in {:name "pipeline1bts_in"},
@@ -123,14 +127,13 @@
    :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}
                "sink2bts" {:type "gcs" :bucket "sink2-bts-test"}
                "sink3bts" {:type "gcs" :bucket "sink3-bts-test"}
-               "orionsink" {:type "gcs" :bucket "orionbucket"}
-               #_"orionbq" #_{:type "bq" :bigQueryDataset "hx-test" :bigQueryTable "hx-test"}}
+               "orionsink" {:type "gcs" :bucket "orionbucket"}}
    :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
                {:origin "pipeline1bts" :targets ["pipeline2bts" "pipeline3bts"]}
                {:origin "pipeline2bts" :targets ["sink1bts"  "sink3bts"]}
                {:origin "orion" :targets ["orionpipe"]}
-               {:origin "orionpipe" :targets ["orionsink" #_"orionbq"]}
-               {:origin "pipeline3bts" :targets ["sink2bts" #_"sink4bts"]}]})
+               {:origin "orionpipe" :targets ["orionsink"]}
+               {:origin "pipeline3bts" :targets ["sink2bts"]}]})
 
 (def big-provider {:google {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
                             :project "hx-test",
@@ -333,3 +336,39 @@
       (is (= big-bucket (get-in g [:resource :google_storage_bucket]))))
     (testing "Dataflows"
       (is (= big-dataflows (get-in g [:resource :googlecli_dataflow]))))))
+
+(def bq-graph
+  (-> big-test-gr
+      (assoc-in [:sinks "orionbq"] {:type "bq" :bigQueryDataset "hx-test" :bigQueryTable "hx-test"})
+      (assoc-in [:edges]  [{:origin "stream1bts" :targets ["pipeline1bts"]}
+                           {:origin "pipeline1bts" :targets ["pipeline2bts" "pipeline3bts"]}
+                           {:origin "pipeline2bts" :targets ["sink1bts"  "sink3bts"]}
+                           {:origin "orion" :targets ["orionpipe"]}
+                           {:origin "orionpipe" :targets ["orionsink" "orionbq"]}
+                           {:origin "pipeline3bts" :targets ["sink2bts"]}])))
+
+(def bq-dataflow {:name "orionbq",
+                  :classpath "/usr/local/lib/angleddream-bundled.jar",
+                  :class "com.acacia.angleddream.Main",
+                  :depends_on ["googlecli_dataflow.orionpipe"
+                               "google_pubsub_topic.orionbq_err"
+                               "google_pubsub_topic.orionbq_in"],
+                  :optional_args {:stagingLocation "gs://hx-test/staging-eu",
+                                  :zone "europe-west1-c",
+                                  :workerMachineType "n1-standard-1",
+                                  :bigQueryTable "hx-test",
+                                  :errorPipelineName "orionbq_err",
+                                  :bigQueryDataset "hx-test",
+                                  :pubsubTopic "projects/hx-test/topics/orionbq_in",
+                                  :numWorkers "1",
+                                  :outputTopics "",
+                                  :pipelineName "orionbq",
+                                  :maxNumWorkers "1"}})
+
+;NOTE -- need to have some kind of 'refresh' workflow since we may be defing/undefing in a work session
+
+(deftest add-bq
+  (let [g (create-parsed-output bq-graph)]
+    (testing "Test new dataflow for bigquery"
+      (is (= bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq]))))))
+

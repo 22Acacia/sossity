@@ -19,52 +19,49 @@
                                             "https://www.googleapis.com/auth/monitoring"
                                             "https://www.googleapis.com/auth/cloud-platform"]})
 
-(defn item-metadata [node a-graph]
-  (or (get (:pipelines a-graph) node) (get (:sources a-graph) node) (get (:sinks a-graph) node)))
-
-(defn build-items [g node md]                               ;buggy
-  (reduce #(add-attr %1 node (key %2) (val %2)) g md))
-
-(defn build-annot [g nodes a-graph]
-  (reduce #(build-items %1 %2 (item-metadata %2 a-graph)) g nodes))
-
-(defn anns [g a-graph]
-  (let [t (bf-traverse g)] ;traverse graph to get list of nodes
-    (build-annot g t a-graph)))
-
-;tag sources and sinks
-
-;NEED ERROR CHECKING - make sure all sources and sinks are in execution graph, etc
-;CASE-SENSITIVE
-
 (defn topic-name [topic] (str topic "_in"))
 (defn source-topic-name [topic] (str topic "_out"))
 (defn error-topic-name [topic] (str topic "_err"))
 
+(defn item-metadata [node a-graph]
+  (or (get (:pipelines a-graph) node) (get (:sources a-graph) node) (get (:sinks a-graph) node)))
+
+(defn build-items [g node md]
+  "Add each metadata per node"
+  (reduce #(add-attr %1 node (key %2) (val %2)) g md))
+
+(defn build-annot [g nodes a-graph]
+  "Annotate nodes w/ metadata"
+  (reduce #(build-items %1 %2 (item-metadata %2 a-graph)) g nodes))
+
+(defn anns [g a-graph]
+  "Traverse graph and annotate nodes w/ metadata"
+  (let [t (bf-traverse g)] ;traverse graph to get list of nodes
+    (build-annot g t a-graph)))
+
+;NEED ERROR CHECKING - make sure all sources and sinks are in execution graph, etc
+;CASE-SENSITIVE
+
+
 (defn is-dataflow-job?
-  [node a-graph]
+  "Determines if item is dataflow job. eventually should be done by checking in-degree and out-degree = at least 1, but for now just check metadata"
+  [g node a-graph]
   (or
    (not (= nil (get-in a-graph [:pipelines node])))
-   (= "cdf" (get-in a-graph [:sources node :type]))
-   (= "cdf" (get-in a-graph [:sinks node :type]))
-   (= "bq" (get-in a-graph [:sources node :type]))
-   (= "bq" (get-in a-graph [:sinks node :type]))))
+   (= "cdf" (attr g node :type))
+   (= "bq" (attr g node :type))))
 
 (defn is-bigquery?
-  [node a-graph]
-  (or
-   (= "bq" (get-in a-graph [:sources node :type]))
-   (= "bq" (get-in a-graph [:sinks node :type]))))
+  [g node]
+  (= "bq" (attr g node :type)))
 
 (defn is-pipeline?
-  [node a-graph]
-  (or
-   (= "cdf" (get-in a-graph [:sources node :type]))
-   (= "cdf" (get-in a-graph [:sinks node :type]))))
+  [g node]
+  (= "cdf" (attr g node :type)))
 
 (defn is-cloud-storage?
-  [node sub-graph]
-  (= "gcs" (get-in sub-graph [node :type])))
+  [g node]
+  (= "gcs" (attr g node :type)))
 
 (defn topic
   [node project]
@@ -113,8 +110,8 @@
     output))
 
 ;;add depeendencies
-(defn create-sink-container [item a-graph]
-  (if-not (is-pipeline? (key item) a-graph)
+(defn create-sink-container [g item a-graph]
+  (if-not (is-pipeline? g (key item))
     (let [node (key item)
           item_name (clojure.string/lower-case (str node "-sink"))
           docker_image "gcr.io/hx-test/store-sink"
@@ -130,16 +127,16 @@
 
       output)))
 
-(defn create-sub [item a-graph]
-  (if-not (is-pipeline? (key item) a-graph)
+(defn create-sub [g item]
+  (if-not (is-pipeline? g (key item))
     (let [node (key item)
           name (str node "_sub")
           topic (topic-name node)
           output {name {:name name :topic topic :depends_on [(str pl-prefix "." topic)]}}]
       output)))
 
-(defn create-bucket [item a-graph]
-  (if (is-cloud-storage? (key item) (:sinks a-graph))
+(defn create-bucket [g item]
+  (if (is-cloud-storage? g (key item))
     (let [name (:bucket (val item))
           force_destroy true
           location "EU"
@@ -178,7 +175,7 @@
 
 (defn create-dataflow-item                                  ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
   [g node a-graph]
-  (if (is-dataflow-job? node a-graph) ;always nil for now
+  (if (is-dataflow-job? g node a-graph) ;always nil for now
     (let [project (get-in a-graph [:provider :project])
           output-topics (map #(topic-name %) (successors g node))
           input-topic (determine-input-topic g node a-graph)
@@ -194,10 +191,16 @@
           opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic}
           opt-mapb (assoc opt-map :outputTopics (clojure.string/join (interpose "," (map #(topic % project) output-topics))))
           endpoint-opt-map (endpoint-opts :sinks node a-graph)
-          optional-args (apply merge cli-map opt-mapb endpoint-opt-map)]
+          bq-opts (if (is-bigquery? g node) (dissoc (attrs g node) :type))
+          optional-args (apply merge cli-map opt-mapb endpoint-opt-map bq-opts)]
       {name {:name name :classpath classpath :class class :depends_on depends-on :optional_args optional-args}})))
 
 ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
+
+#_(defn create-dataflow-jobs [g a-graph]
+    (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf or bgq
+          jobs (filter (comp not nil?) (map #(create-dataflow-item g % a-graph) t))]
+      jobs))
 
 (defn create-dataflow-jobs [g a-graph]
   (let [t (bf-traverse g)                                   ;filter out anything in soruces or sinks without type cdf or bgq
@@ -214,14 +217,14 @@
 (defn create-sources [a-graph]
   (map #(create-source-container % a-graph) (:sources a-graph)))
 
-(defn create-sinks [a-graph]
-  (map #(create-sink-container % a-graph) (:sinks a-graph)))
+(defn create-sinks [g a-graph]
+  (map #(create-sink-container g %  a-graph) (:sinks a-graph)))
 
-(defn create-subs [a-graph]
-  (map #(create-sub % a-graph) (:sinks a-graph)))
+(defn create-subs [g a-graph]
+  (map #(create-sub g %) (:sinks a-graph)))
 
-(defn create-buckets [a-graph]
-  (map #(create-bucket % a-graph) (:sinks a-graph)))
+(defn create-buckets [g a-graph]
+  (map #(create-bucket g %) (:sinks a-graph)))
 
 (defn output-container-cluster
   [a-graph]
@@ -231,13 +234,12 @@
   [a-graph]
   (let [g (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))]
 
-    g
     ;decorate nodes
-    #_(->#_ (build-annot g (:pipelines a-graph))
-            #_(build-annot  (:sources a-graph))
-            #_(build-annot  (:sinks a-graph))
-            #_(add-attr-to-nodes :type :source (get-submembers-keys a-graph :sources))
-            #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
+    (-> (anns g a-graph)
+        #_(build-annot  (:sources a-graph))
+        #_(build-annot  (:sinks a-graph))
+        #_(add-attr-to-nodes :type :source (get-submembers-keys a-graph :sources))
+        #_(add-attr-to-nodes :type :sink (get-submembers-keys a-graph :sinks))))                                    ;return the graph?
 )
 
 ;FIXME: need to have path_to_angleddream_bundled_jar? Or maybe just merge this. replica controller names have to match DNS entries, so no underscores or capital letters
@@ -249,12 +251,12 @@
         goo-provider {:google (output-provider a-graph)}
         cli-provider {:googlecli (output-provider a-graph)}
         pubsubs {:google_pubsub_topic (apply merge (output-pubsub (create-pubsubs g)))}
-        subscriptions {:google_pubsub_subscription (apply merge (create-subs a-graph))}
-        buckets {:google_storage_bucket (apply merge (create-buckets a-graph))}
+        subscriptions {:google_pubsub_subscription (apply merge (create-subs g a-graph))}
+        buckets {:google_storage_bucket (apply merge (create-buckets g a-graph))}
         dataflows {:googlecli_dataflow (apply merge (create-dataflow-jobs g a-graph))}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources (apply merge (create-sources a-graph))
-        sinks (apply merge (create-sinks a-graph))
+        sinks (apply merge (create-sinks g a-graph))
         controllers {:googlecli_container_replica_controller (apply merge sources sinks)}
         combined {:provider (merge goo-provider cli-provider) :resource (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
