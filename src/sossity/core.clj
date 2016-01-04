@@ -111,7 +111,7 @@
 
 ;;add depeendencies
 (defn create-sink-container [g item a-graph]
-  (if-not (is-pipeline? g (key item))
+  (if-not (is-dataflow-job? g (key item) a-graph)
     (let [node (key item)
           item_name (clojure.string/lower-case (str node "-sink"))
           docker_image "gcr.io/hx-test/store-sink"
@@ -127,8 +127,8 @@
 
       output)))
 
-(defn create-sub [g item]
-  (if-not (is-pipeline? g (key item))
+(defn create-sub [g item a-graph]
+  (if-not (is-dataflow-job? g (key item) a-graph)
     (let [node (key item)
           name (str node "_sub")
           topic (topic-name node)
@@ -221,7 +221,7 @@
   (map #(create-sink-container g %  a-graph) (:sinks a-graph)))
 
 (defn create-subs [g a-graph]
-  (map #(create-sub g %) (:sinks a-graph)))
+  (map #(create-sub g % a-graph) (:sinks a-graph)))
 
 (defn create-buckets [g a-graph]
   (map #(create-bucket g %) (:sinks a-graph)))

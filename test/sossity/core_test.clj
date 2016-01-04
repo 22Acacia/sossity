@@ -365,10 +365,29 @@
                                   :pipelineName "orionbq",
                                   :maxNumWorkers "1"}})
 
+(def bq-pubsub-tops (->
+                      big-pubsub-tops
+                      (assoc :orionbq_err {:name "orionbq_err"})
+                      (assoc :orionbq_in {:name "orionbq_in"})
+                      ))
+
 ;NOTE -- need to have some kind of 'refresh' workflow since we may be defing/undefing in a work session
 
 (deftest add-bq
   (let [g (create-parsed-output bq-graph)]
     (testing "Test new dataflow for bigquery"
-      (is (= bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq]))))))
+      (is (= bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq])))
+      (testing "Test the minimum viable graph provider"
+        (is (= big-provider (:provider g))))
+      (testing "Pubsub topics"
+        (is (= bq-pubsub-tops (get-in g [:resource :google_pubsub_topic]))))
+      (testing "Pusub subs"
+        (is (= big-pubsub-subs (get-in g [:resource :google_pubsub_subscription]))))
+      (testing "container cluster"
+        (is (= big-container-cluster (get-in g [:resource :google_container_cluster]))))
+      (testing "Replica controllers"
+        (is (= big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller]))))
+      (testing "Storage buckets"
+        (is (= big-bucket (get-in g [:resource :google_storage_bucket]))))
+      )))
 
