@@ -1,13 +1,12 @@
 (ns sossity.core
-  (:require [clojure.test :refer :all]
-            #_[sossity.core :refer :all]
-            [loom.graph :refer :all]
-            [loom.alg :refer :all]
-            [loom.io :refer :all]
-            [loom.attr :refer :all]
-            [cheshire.core :refer :all]
-            [clojure.tools.cli :refer [parse-opts]]
-            [traversy.lens :as t :refer :all :exclude [view update combine]])
+  (:require
+   [loom.graph :refer :all]
+   [loom.alg :refer :all]
+   [loom.io :refer :all]
+   [loom.attr :refer :all]
+   [cheshire.core :refer :all]
+   [clojure.tools.cli :refer [parse-opts]]
+   [traversy.lens :as t :refer :all :exclude [view update combine]])
   (:gen-class))
 
 (def sr-prefix "googlecli_container_replica_controller")
@@ -23,7 +22,6 @@
 (defn item-metadata [node a-graph]
   (or (get (:pipelines a-graph) node) (get (:sources a-graph) node) (get (:sinks a-graph) node)))
 
-
 (defn build-items [g node md]                               ;buggy
   (reduce #(add-attr %1 node (key %2) (val %2)) g md))
 
@@ -33,7 +31,6 @@
 (defn anns [g a-graph]
   (let [t (bf-traverse g)] ;traverse graph to get list of nodes
     (build-annot g t a-graph)))
-
 
 ;tag sources and sinks
 
