@@ -5,7 +5,7 @@
             [clojure.tools.namespace.repl :refer :all]))
 
 (defn create-parsed-output [g]
-  (decode (create-terraform-json
+  (cheshire.core/decode (create-terraform-json
            g) true))
 
 (def small-test-gr
