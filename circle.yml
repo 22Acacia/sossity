@@ -10,6 +10,4 @@ deployment:
   demo:
     branch: master
     commands:
-      - cd $HOME/$CIRCLE_PROJECT_REPONAME && lein uberjar
-      - gsutil cp $HOME/$CIRCLE_PROJECT_REPONAME/target/sossity-0.1.0-SNAPSHOT-standalone.jar gs://build-artifacts-public-eu/sossity-standalone.jar
-      - curl -XPOST https://circleci.com/api/v1/project/22acacia/demo-config/tree/master?circle-token=$CIRCLE_TOKEN
+      - $HOME/$CIRCLE_PROJECT_REPONAME/deploy_project.sh
