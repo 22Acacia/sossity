@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#  assumes we are in the project home directory
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+cd ${DIR}
 lein uberjar
 ret=$?
 if [ $ret -ne 0 ]; then
