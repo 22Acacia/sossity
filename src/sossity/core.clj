@@ -88,6 +88,7 @@
   (filter #(> (out-degree g %1) 0) (successors g node)))
 
 (defn predecessor-sources
+  "Determine which nodes are at the 'head' of a data flow, usually REST endpoints"
   [g node a-graph]
   (let [preds (set (predecessors g node))
         sources (filter preds (set (-> (:sources a-graph) (t/view all-keys))))
@@ -104,6 +105,7 @@
     (conj source-names job-names)))
 
 (defn create-container-cluster
+  "Create a Kubernetes cluster"
   [a-graph]
   (let [zone (get-in a-graph [:opts :zone])
         output (assoc (assoc (:cluster a-graph) :zone zone) :node_config container-oauth-scopes)]
@@ -111,6 +113,7 @@
 
 ;;add depeendencies
 (defn create-sink-container [g item a-graph]
+  "Create a sink Kubernetes container"
   (if-not (is-dataflow-job? g (key item) a-graph)
     (let [node (key item)
           item_name (clojure.string/lower-case (str node "-sink"))
@@ -128,6 +131,7 @@
       output)))
 
 (defn create-sub [g item a-graph]
+  "Create a pubsub subscription"
   (if-not (is-dataflow-job? g (key item) a-graph)
     (let [node (key item)
           name (str node "_sub")
@@ -136,6 +140,7 @@
       output)))
 
 (defn create-bucket [g item]
+  "Create a cloud storage bucket"
   (if (is-cloud-storage? g (key item))
     (let [name (:bucket (val item))
           force_destroy true
