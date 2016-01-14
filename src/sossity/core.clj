@@ -13,7 +13,7 @@
 (def df-prefix "googlecli_dataflow")
 (def pl-prefix "google_pubsub_topic")
 (def replication-controller-name-regex #"([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)")
-(def container-oauth-scopes )
+(def container-oauth-scopes)
 
 (defn topic-name [topic] (str topic "_in"))
 (defn source-topic-name [topic] (str topic "_out"))

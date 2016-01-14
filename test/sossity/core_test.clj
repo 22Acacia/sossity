@@ -1,8 +1,7 @@
 (ns sossity.core-test
   (:require [sossity.core :refer :all]
             [clojure.test :refer :all]
-            [cheshire.core :refer :all]
-            ))
+            [cheshire.core :refer :all]))
 
 (defn create-parsed-output [g]
   (cheshire.core/decode (create-terraform-json
@@ -14,8 +13,7 @@
                                                                                                                                      "https://www.googleapis.com/auth/logging.write"
                                                                                                                                      "https://www.googleapis.com/auth/monitoring"
                                                                                                                                      "https://www.googleapis.com/auth/cloud-platform"]
-                                                                                                                      :machine_type "n1-standard-4"
-                                                                                                                      } }
+                                                                                                                      :machine_type "n1-standard-4"}}
    :opts      {:composer-classpath ["/usr/local/lib/angleddream-bundled.jar"]
                :maxNumWorkers      "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1"
                :stagingLocation    "gs://hx-test/staging-eu"}
@@ -58,8 +56,7 @@
                                                                             "https://www.googleapis.com/auth/logging.write"
                                                                             "https://www.googleapis.com/auth/monitoring"
                                                                             "https://www.googleapis.com/auth/cloud-platform"]
-                                                             :machine_type "n1-standard-4"
-                                                             }}})
+                                                             :machine_type "n1-standard-4"}}})
 
 (def sm-replica-controllers {:stream1bts-source {:name "stream1bts-source",
                                                  :docker_image "gcr.io/hx-test/source-master",
@@ -121,8 +118,7 @@
                                                                                                                                     "https://www.googleapis.com/auth/logging.write"
                                                                                                                                     "https://www.googleapis.com/auth/monitoring"
                                                                                                                                     "https://www.googleapis.com/auth/cloud-platform"]
-                                                                                                                     :machine_type "n1-standard-4"
-                                                                                                                     }}
+                                                                                                                     :machine_type "n1-standard-4"}}
    :opts      {:composer-classpath    ["/usr/local/lib/angleddream-bundled.jar"] ;where all the jar files live. no trailing slash. may be overriden by env var in production? also be sure to build thick jars from angled-dream for deps
                :maxNumWorkers "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1"
                :stagingLocation "gs://hx-test/staging-eu"}
@@ -200,8 +196,7 @@
                                                                              "https://www.googleapis.com/auth/logging.write"
                                                                              "https://www.googleapis.com/auth/monitoring"
                                                                              "https://www.googleapis.com/auth/cloud-platform"]
-                                                              :machine_type "n1-standard-4"
-                                                              }}})
+                                                              :machine_type "n1-standard-4"}}})
 
 (def big-replica-controllers {:stream1bts-source {:name "stream1bts-source",
                                                   :docker_image "gcr.io/hx-test/source-master",
