@@ -189,7 +189,7 @@
           depends-on (flatten [(flatten [output-depends predecessor-depends]) (str pl-prefix "." error-topic) input-depends])
           cli-map (dissoc (:opts a-graph) :composer-classpath)
           classpath (clojure.string/join (interpose ":" (concat (get-in a-graph [:opts :composer-classpath]) (get-in a-graph [:pipelines node :transform-graph])))) ;classpath has only one dash!
-          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName error-topic}
+          opt-map {:pubsubTopic (topic input-topic project) :pipelineName name :errorPipelineName (topic error-topic project)}
           opt-mapb (if-not (is-bigquery? g node)
                      (assoc opt-map :outputTopics (clojure.string/join (interpose "," (map #(topic % project) output-topics))))
                      opt-map)
