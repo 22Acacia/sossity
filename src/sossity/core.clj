@@ -13,11 +13,7 @@
 (def df-prefix "googlecli_dataflow")
 (def pl-prefix "google_pubsub_topic")
 (def replication-controller-name-regex #"([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)")
-(def container-oauth-scopes {:oauth_scopes ["https://www.googleapis.com/auth/compute"
-                                            "https://www.googleapis.com/auth/devstorage.read_only"
-                                            "https://www.googleapis.com/auth/logging.write"
-                                            "https://www.googleapis.com/auth/monitoring"
-                                            "https://www.googleapis.com/auth/cloud-platform"]})
+(def container-oauth-scopes )
 
 (defn topic-name [topic] (str topic "_in"))
 (defn source-topic-name [topic] (str topic "_out"))
@@ -108,7 +104,7 @@
   "Create a Kubernetes cluster"
   [a-graph]
   (let [zone (get-in a-graph [:opts :zone])
-        output (assoc (assoc (:cluster a-graph) :zone zone) :node_config container-oauth-scopes)]
+        output (assoc (:cluster a-graph) :zone zone)]
     output))
 
 ;;add depeendencies
