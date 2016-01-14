@@ -119,7 +119,7 @@
           item_name (clojure.string/lower-case (str node "-sink"))
           docker_image "gcr.io/hx-test/store-sink"
           num_retries 3
-          batch_size 10000
+          batch_size 1000
           proj_name (get-in a-graph [:provider :project])
           sub_name (str node "_sub")
           container_name "${google_container_cluster.hx_fstack_cluster.name}"
