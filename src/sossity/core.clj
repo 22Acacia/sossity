@@ -21,6 +21,9 @@
 (def sink-container "${google_container_cluster.hx_fstack_cluster.name}")
 (def source-image "gcr.io/hx-test/source-master")
 (def source-port "8080")
+(def default-bucket-location "EU")
+(def default-force-bucket-destroy true)
+
 
 (defn topic-name [topic] (str topic "_in"))
 (defn source-topic-name [topic] (str topic "_out"))
@@ -36,6 +39,12 @@
    [item (get (:sinks a-graph) node)] (if (= (:type item) "bq")
                                         (assoc item :exec :pipeline)
                                         (assoc item :exec :sink))))
+
+(defn config [a-graph]
+  {:config-file a-graph
+   :project (get-in a-graph [:provider :project])
+   :region (get-in a-graph [:provider :opts :zone])})
+
 
 (defn build-items [g node md]
   "Add each metadata per node"                              ;may need to add some kinda filter on this
@@ -182,17 +191,10 @@
 (defn create-subs [g node]
   (apply merge (map #(create-sub g %) (in-edges g node))))
 
-
-(defn create-bucket [g item]
-  "Create a cloud storage bucket"
-  (if (is-cloud-storage? g (key item))
-    (let [name (:bucket (val item))
-          force_destroy true
-          location "EU"
-          output {name {:name name
-                        :force_destroy force_destroy
-                        :location location}}]
-      output)))
+(defn create-bucket [g node]
+  (if (and (= "gcs" (attr g node :type)) (attr g node :bucket))
+    {(attr g node :bucket) {:name (attr g node :bucket) :force_destroy default-force-bucket-destroy :location default-bucket-location}}
+    ))
 
 ;NOTE: need to create some kind of multiplexer job to make it so multiple jobs can read from multiple sources? ugh
 
@@ -276,8 +278,8 @@
 (defn output-subs [g]
   (apply merge (map #(create-subs g %) (filter-node-attrs g :type "gcs"))))
 
-(defn create-buckets [g a-graph]
-  (map #(create-bucket g %) (:sinks a-graph)))
+(defn output-buckets [g ]
+  (apply merge (map #(create-bucket g %) (nodes g))))
 
 (defn output-container-cluster
   [a-graph]
@@ -310,10 +312,7 @@
 
 ;FIXME: need to have path_to_angleddream_bundled_jar? Or maybe just merge this. replica controller names have to match DNS entries, so no underscores or capital letters
 
-(defn config [a-graph]
-  {:config-file a-graph
-   :project (get-in a-graph [:provider :project])
-   :region (get-in a-graph [:provider :opts :zone])})
+
 
 (defn create-terraform-json                                 ;gotta be a better way to clean up these 'apply merges'. NEED TO CHANGE TO USE GRAPH, NOT CONFIG, FOR BUILDING
   [a-graph]
@@ -323,7 +322,7 @@
         cli-provider {:googlecli (output-provider a-graph)}
         pubsubs {:google_pubsub_topic (output-pubsub g)}
         subscriptions {:google_pubsub_subscription (output-subs g )}
-        buckets {:google_storage_bucket (apply merge (create-buckets g a-graph))}
+        buckets {:google_storage_bucket (output-buckets g a-graph)}
         dataflows {:googlecli_dataflow (apply merge (create-dataflow-jobs g a-graph))}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources (apply merge (create-sources a-graph))
