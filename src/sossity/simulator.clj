@@ -8,23 +8,6 @@
    [loom.io :refer :all]
    [loom.attr :refer :all]))
 
-;use doseq or doall to realize all the pubs?
-
-(defn take-and-print [channel prefix]
-  (go-loop []
-    (println prefix " sink: " (<! channel))
-    (recur)))
-
-(defn pass-on [in-channel node out-channels]
-  "eventually this will be used to apply a fn (or java jar or py) and fanout the results to chans"
-  (go-loop []
-    (let [v (<! in-channel)]
-      (println node ": " v)
-      (doseq  [c out-channels]
-        #_(println "channel" c)
-        (>! c (assoc v :chans (conj (:chans v) node)))))
-    (recur)))
-
 (def g1 (digraph {:a [:b :c]
                   :b [:d]
                   :d [:g :h :i]
@@ -40,32 +23,46 @@
                   :b [:c]
                   :c nil}))
 
+(defn take-and-print [channel prefix]
+  "just prints whatever is on channel"
+  (go-loop []
+    (println prefix " sink: " (<! channel))
+    (recur)))
+
+(defn pass-on [in-channel node out-channels]
+  "eventually this will be used to apply a fn (or java jar or py) and fanout the results to chans"
+  (go-loop []
+    (let [v (<! in-channel)]
+      (println node ": " v)
+      (doseq  [c out-channels]
+        (>! c (assoc v :chans (conj (:chans v) node)))))
+    (recur)))
+
 (defn get-node-or-edge-attr [g k]
+  "return an attribute from all nodes"
   (reduce #(let [a (attr g %2 k)]
              (if (some? a)
                (assoc %1 %2 a))) {} (nodes g)))
 
-(defn build-node [input-pub input-topic  output-topics]
+(defn build-node [input-pub node output-topics]
   "returns a seq of output publications for a node to talk to"
   (let [input (chan)
         out-chans (repeatedly (count output-topics) chan)
         out-pubs  (doall (map #(pub % (fn [x] :topic  #_(not= x nil))) out-chans))]
-    (sub input-pub :topic #_input-topic input)
-    (pass-on input input-topic out-chans)
+    (sub input-pub :topic  input)
+    (pass-on input node out-chans)
     out-pubs))
 
 (defn build-end-node [input-pub node]
+  "simulates a sink by attaching a fn to the channel that just prints"
   (let [input (chan)]
     (sub input-pub :topic input)
     (take-and-print input node)))
 
 (defn build-head-node []
   "returns the channel and pub for a head node"
-
   (let [input (chan)]
     [input (pub input :topic)]))
-
-;;do a reduce to collect the pubs?
 
 (defn create-outputs [g node source-pub]
   "returns graph after outputs created"
@@ -73,7 +70,7 @@
         out-pubs (build-node source-pub
                              node
                              outward-edges)]
-    (println node)
+    (println "creating outputs: " node)
     (reduce #(add-attr %1 (key %2) :pub (val %2)) g (zipmap outward-edges out-pubs))))
 
 (defn get-pub [g node]
@@ -86,14 +83,14 @@
   "annotates a node and edges in the graph with channels, returns the graph"
   ;there has got to be a better way to do this than all the nested nightmare
 
-  (let [gr  (if (= 0 (in-degree g node))
+  (let [gr  (if (= 0 (in-degree g node))                    ;if a node has nothing coming in, it's a head node
               (let [[ch p] (build-head-node)]
                 (-> g
                     (add-attr node :in-chan ch)
                     (add-attr node :pub p)))
               g)]
 
-    (println (out-degree gr node))
+    (println (str "out-deg: " node (out-degree gr node)))
     (if (> (out-degree gr node) 0)
 
       (create-outputs gr node (get-pub gr node))
@@ -113,48 +110,3 @@
     (println a)
     (put! (:a pipes) {:topic :topic :dest "/#home"})))
 
-(defn test-build-node []
-  (let
-   [publisher (chan)
-    publication (pub publisher #(:topic))
-    out-topics ["unitA" "unitB"]]
-
-    (let [out-pubs (build-node publication :pipeA out-topics)]
-      (doall (map #(let [sc (chan)]
-                     (sub %1 :pipeA sc)
-                     (take-and-print sc %2)) out-pubs out-topics)))
-    (put! publisher {:topic :pipeA :dest "zzz/#home"})))
-
-#_(defn test-build-node-b []
-    (let
-     [publisher (chan)
-      publication (pub publisher #(:topic %))
-      out-nodes ["unitA" "unitB"]]
-      (let [out-pubs (build-node publication :pipeA out-nodes)]
-        (doseq [p out-pubs]
-          (build-end-node p :pipeA)))
-      (put! publisher {:topic :pipeA :dest "zzz/#home"})))
-
-(defn pubsubtest [derp]
-  (let [publisher (chan)
-        publication (pub publisher #(:topic %))
-
-        out-one (chan)
-        out-pub (pub out-one #(:topic %))
-
-        out-two (chan)
-        out-two-pub (pub out-two #(:topic %))
-
-        subscriber-one (chan)
-
-        subscriber-two-a (chan)
-
-        subscriber-two-b (chan)] (sub out-pub :account-created     subscriber-two-a)
-       (sub out-two-pub :account-created     subscriber-two-b)
-
-       (take-and-print subscriber-two-b "subscriber-two-b")
-       (take-and-print subscriber-two-a "subscriber-two-a")
-
-       (sub publication :account-created subscriber-one)
-
-       (pass-on subscriber-one "subscriber-one" [out-one out-two]) (put! publisher {:topic :account-created :dest "/#home"})))
