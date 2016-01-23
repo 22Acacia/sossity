@@ -50,6 +50,11 @@
   "Annotate nodes w/ metadata"
   (reduce #(build-items %1 %2 (item-metadata %2 a-graph)) g nodes))
 
+(defn get-node-or-edge-attr [g k]
+  (reduce #(let [a (attr g %2 k)]
+             (if (some? a)
+               (assoc %1 %2 a))) {} (nodes g)))
+
 (defn anns [g a-graph]
   "Traverse graph and annotate nodes w/ metadata"
   (let [t (bf-traverse g)] ;traverse graph to get list of nodes

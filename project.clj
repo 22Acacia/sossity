@@ -14,8 +14,7 @@
                  [org.slf4j/slf4j-nop "1.7.5"]
                  [commons-io/commons-io "2.4"]
                  [org.flatland/useful "0.11.3"]
-                 [org.clojure/core.async "0.2.374"]
-                 ]
+                 [org.clojure/core.async "0.2.374"]]
 
   :plugins [[lein-cljfmt "0.3.0"]]
   :main sossity.core
