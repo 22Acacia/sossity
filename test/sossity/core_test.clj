@@ -109,7 +109,7 @@
                                 :scaling        {:minIdleInstances  1,
                                                  :maxIdleInstances  1,
                                                  :minPendingLatency "3s",
-                                                 :maxPendingLatency "automatic"},
+                                                 :maxPendingLatency "6s"},
                                 :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"}})
 
 (def sm-dataflows {:pipeline1bts {:name "pipeline1bts",
@@ -435,7 +435,7 @@
                                  :scaling        {:minIdleInstances  1,
                                                   :maxIdleInstances  1,
                                                   :minPendingLatency "3s",
-                                                  :maxPendingLatency "automatic"},
+                                                  :maxPendingLatency "6s"},
                                  :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"},
                     :orion      {:moduleName     "orion",
                                  :version        "init",
@@ -444,7 +444,7 @@
                                  :scaling        {:minIdleInstances  1,
                                                   :maxIdleInstances  1,
                                                   :minPendingLatency "3s",
-                                                  :maxPendingLatency "automatic"},
+                                                  :maxPendingLatency "6s"},
                                  :topicName      "projects/hx-test/topics/orion-to-orionpipe"}})
 
 (deftest test-big-graph
