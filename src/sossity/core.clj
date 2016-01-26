@@ -241,15 +241,18 @@
     (-> g
         (add-nodes name)
         (add-attr name :type "gcs")
+        (add-attr name :exec :sink)
         (add-attr name :bucket name)
         (add-edges [parent name])
         (add-attr-to-edges :type :error [[parent name]]))))
 
 (defn add-error-sinks
   "Add error sinks to every non-source item on the graph. Sources don't have errors because they should return a 4xx or 5xx when something gone wrong"
-  [g]
-  (let [connected (filter #(> (in-degree g %1) 0) (nodes g))]
-    (reduce #(add-error-sink-node %1 %2) g connected)))
+  [g conf]
+  (if (get-in conf [:config-file :config :error-buckets])
+    (let [connected (filter #(> (in-degree g %1) 0) (nodes g))]
+      (reduce #(add-error-sink-node %1 %2) g connected))
+    g))
 
 (defn create-dag
   [a-graph conf]
@@ -257,10 +260,9 @@
     ;decorate nodes
     (-> g
         (anns a-graph)
-        add-error-sinks
+        (add-error-sinks conf)
         (name-edges conf)))                                    ;return the graph?
 )
-
 
 (defn create-terraform-json
   [a-graph]
@@ -274,7 +276,7 @@
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (create-sources g)}
-        sinks (output-sinks g conf)
+        sinks  (output-sinks g conf)
         controllers {:googlecli_container_replica_controller sinks}
         combined {:provider (merge goo-provider cli-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows)}
