@@ -11,7 +11,7 @@
   {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
                :local-angleddream-path    "/home/bradford/proj/angled-dream/target/angleddream-bundled-0.1-ALPHA.jar"
                :remote-libs-path          "/usr/local/lib"
-               :error-buckets false}
+               :error-buckets true}
    :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
