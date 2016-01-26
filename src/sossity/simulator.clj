@@ -35,13 +35,15 @@
 
 (defn take-and-print [channel node]
   "just prints whatever is on channel"
-  (go-loop []
-    (let [out (generate-string (<! channel))
-          out-file (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
-      (println node " sink: " out)
-      (clojure.java.io/make-parents out-file)
-      (spit out-file out :append true :create true))
-    (recur)))
+  (do
+    #_(clojure.java.io/make-parents (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp))
+    (go-loop []
+      (let [out (generate-string (<! channel))
+            out-file (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
+        (println node " sink: " out)
+        (clojure.java.io/make-parents out-file)
+        (spit out-file (str out "\n") :append true :create true))
+      (recur))))
 
 (defn construct [klass & args]
   (clojure.lang.Reflector/invokeConstructor (. Class forName klass) (to-array args)))
@@ -65,7 +67,7 @@
         (-> (.apply clazz (generate-string input)) (decode true)))))
 
 (defn transform-fn [g node input]
-  (if-let [t (attr g node :transform-class)]
+  (if-let [t (attr g node :composer-class)]
     (apply-sossity-transform t input g)
     input
     #_(apply-test-transform node input)))
@@ -167,8 +169,7 @@
         in-files (doall (s/get-all-node-or-edge-attr g :test-input))]
     (doseq [pipe (keys pipes)]
       (doseq [data (doall (parse-stream (clojure.java.io/reader (get in-files pipe)) true))]
-        (doseq [item data]
-          (put! (get pipes pipe) (handle-message item)))))))
+        (put! (get pipes pipe) (handle-message data))))))
 
 (defn rest-tester [a-graph]
   "creates a 'dev server' with endpoints at [sourcename]/endpoint, not sure what to do with results ")

@@ -26,7 +26,7 @@
    :pipelines {"pipeline1bts"
                {:transform-jar   "pipeline3.jar"
                 :local-jar-path  "/home/bradford/proj/pipeline-examples/pipeline3/target/pipeline3-bundled-0.1-ALPHA.jar"
-                :transform-class "com.acacia.pipeline3.AppendStringComposer"}}
+                :composer-class "com.acacia.pipeline3.AppendStringComposer"}}
    :sources   {"stream1bts" {:type "kub" :test-input "/home/bradford/proj/pipeline-examples/test-inputs/stream1bts.json"}}
    :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
    :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
