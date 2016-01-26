@@ -116,8 +116,7 @@
                                   :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline3.jar",
                                   :class "com.acacia.angleddream.Main",
                                   :depends_on ["google_pubsub_topic.pipeline1bts-to-sink1bts"
-                                               "googlecli_container_replica_controller.stream1bts"
-                                               "googlecli_dataflow.stream1bts"
+                                               "googleappengine_app.stream1bts"
                                                "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
                                                "google_pubsub_topic.stream1bts-to-pipeline1bts"],
                                   :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
@@ -387,8 +386,7 @@
                                    :class "com.acacia.angleddream.Main",
                                    :depends_on ["google_pubsub_topic.pipeline1bts-to-pipeline3bts"
                                                 "google_pubsub_topic.pipeline1bts-to-pipeline2bts"
-                                                "googlecli_container_replica_controller.stream1bts"
-                                                "googlecli_dataflow.stream1bts"
+                                                "googleappengine_app.stream1bts"
                                                 "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
                                                 "google_pubsub_topic.stream1bts-to-pipeline1bts"],
                                    :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
@@ -399,6 +397,7 @@
                                    :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline3.jar",
                                    :class "com.acacia.angleddream.Main",
                                    :depends_on ["google_pubsub_topic.pipeline3bts-to-sink2bts"
+                                                "googlecli_dataflow.pipeline1bts"
                                                 "google_pubsub_topic.pipeline3bts-to-pipeline3bts-error"
                                                 "google_pubsub_topic.pipeline1bts-to-pipeline3bts"],
                                    :optional_args {:pubsubTopic "projects/hx-test/topics/pipeline1bts-to-pipeline3bts",
@@ -410,6 +409,7 @@
                                    :class "com.acacia.angleddream.Main",
                                    :depends_on ["google_pubsub_topic.pipeline2bts-to-sink3bts"
                                                 "google_pubsub_topic.pipeline2bts-to-sink1bts"
+                                                "googlecli_dataflow.pipeline1bts"
                                                 "google_pubsub_topic.pipeline2bts-to-pipeline2bts-error"
                                                 "google_pubsub_topic.pipeline1bts-to-pipeline2bts"],
                                    :optional_args {:pubsubTopic "projects/hx-test/topics/pipeline1bts-to-pipeline2bts",
@@ -420,8 +420,7 @@
                                 :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar",
                                 :class "com.acacia.angleddream.Main",
                                 :depends_on ["google_pubsub_topic.orionpipe-to-orionsink"
-                                             "googlecli_container_replica_controller.orion"
-                                             "googlecli_dataflow.orion"
+                                             "googleappengine_app.orion"
                                              "google_pubsub_topic.orionpipe-to-orionpipe-error"
                                              "google_pubsub_topic.orion-to-orionpipe"],
                                 :optional_args {:pubsubTopic "projects/hx-test/topics/orion-to-orionpipe",

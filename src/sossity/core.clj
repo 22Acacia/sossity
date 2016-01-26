@@ -11,6 +11,7 @@
   (:gen-class))
 
 (def crc-prefix "googlecli_container_replica_controller")
+(def app-prefix "googleappengine_app")
 (def df-prefix "googlecli_dataflow")
 (def pt-prefix "google_pubsub_topic")
 (def replication-controller-name-regex #"([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)")
@@ -132,8 +133,8 @@
   [g node]
   (let [preds (predecessors g node)
         sources (filter-node-attrs g :exec :source preds)
-        jobs (filter-node-attrs g :exec :source preds)
-        source-names (mapv #(str crc-prefix "." %) sources)
+        jobs (filter-node-attrs g :exec :pipeline preds)
+        source-names (mapv #(str app-prefix "." %) sources)
         job-names (mapv #(str df-prefix "." %)  jobs)]
     (conj source-names job-names)))
 
