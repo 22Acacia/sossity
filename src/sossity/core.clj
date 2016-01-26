@@ -29,7 +29,7 @@
 (def gstoragekey "hxtest-1.0-SNAPSHOT")
 (def default-min-idle 1)
 (def default-max-idle 1)
-(def default-min-pending-latency 30)
+(def default-min-pending-latency "3s")
 (def default-max-pending-latency "automatic")
 
 (defn source-topic-name [topic] (str topic "_out"))

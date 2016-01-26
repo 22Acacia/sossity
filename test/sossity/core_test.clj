@@ -108,7 +108,7 @@
                                 :gstorageBucket "build-artifacts-public-eu",
                                 :scaling        {:minIdleInstances  1,
                                                  :maxIdleInstances  1,
-                                                 :minPendingLatency 30,
+                                                 :minPendingLatency "3s",
                                                  :maxPendingLatency "automatic"},
                                 :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"}})
 
@@ -434,7 +434,7 @@
                                  :gstorageBucket "build-artifacts-public-eu",
                                  :scaling        {:minIdleInstances  1,
                                                   :maxIdleInstances  1,
-                                                  :minPendingLatency 30,
+                                                  :minPendingLatency "3s",
                                                   :maxPendingLatency "automatic"},
                                  :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"},
                     :orion      {:moduleName     "orion",
@@ -443,7 +443,7 @@
                                  :gstorageBucket "build-artifacts-public-eu",
                                  :scaling        {:minIdleInstances  1,
                                                   :maxIdleInstances  1,
-                                                  :minPendingLatency 30,
+                                                  :minPendingLatency "3s",
                                                   :maxPendingLatency "automatic"},
                                  :topicName      "projects/hx-test/topics/orion-to-orionpipe"}})
 
