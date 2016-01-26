@@ -11,6 +11,7 @@
   {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
                :local-angleddream-path    "/home/bradford/proj/angled-dream/target/angleddream-bundled-0.1-ALPHA.jar"
                :remote-libs-path          "/usr/local/lib"
+               :test-output "/home/bradford/proj/sossity/test/"
                :error-buckets true}
    :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
@@ -26,7 +27,7 @@
                {:transform-jar   "pipeline3.jar"
                 :local-jar-path  "/home/bradford/proj/pipeline-examples/pipeline3/target/pipeline3-bundled-0.1-ALPHA.jar"
                 :transform-class "com.acacia.pipeline3.AppendStringComposer"}}
-   :sources   {"stream1bts" {:type "kub"}}
+   :sources   {"stream1bts" {:type "kub" :test-input "/home/bradford/proj/pipeline-examples/test-inputs/stream1bts.json"}}
    :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
    :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
                {:origin "pipeline1bts" :targets ["sink1bts"]}]})
@@ -37,10 +38,6 @@
                   :googlecli {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
                               :project     "hx-test",
                               :region      "europe-west1-c"}})
-
-;{:stream1bts_err {:name "stream1bts_err"}, :orion_out {:name "orion_out"}, :pipeline2bts_in {:name "pipeline2bts_in"}, :orionpipe_in {:name "orionpipe_in"}, :sink1bts_in {:name "sink1bts_in"}, :orion_err {:name "orion_err"}, :pipeline2bts_err {:name "pipeline2bts_err"}, :sink3bts_in {:name "sink3bts_in"}, :orionsink_err {:name "orionsink_err"}, :sink2bts_in {:name "sink2bts_in"}, :pipeline3bts_err {:name "pipeline3bts_err"}, :stream1bts_out {:name "stream1bts_out"}, :sink1bts_err {:name "sink1bts_err"}, :pipeline1bts_in {:name "pipeline1bts_in"}, :sink3bts_err {:name "sink3bts_err"}, :sink2bts_err {:name "sink2bts_err"}, :orionpipe_err {:name "orionpipe_err"}, :pipeline1bts_err {:name "pipeline1bts_err"}, :pipeline3bts_in {:name "pipeline3bts_in"}, :orionsink_in {:name "orionsink_in"}}
-;{:stream1bts_err {:name "stream1bts_err"}, :orion_out {:name "orion_out"}, :pipeline2bts_in {:name "pipeline2bts_in"}, :orionbq_err {:name "orionbq_err"}, :orionpipe_in {:name "orionpipe_in"}, :sink1bts_in {:name "sink1bts_in"}, :orion_err {:name "orion_err"}, :pipeline2bts_err {:name "pipeline2bts_err"}, :sink3bts_in {:name "sink3bts_in"}, :orionsink_err {:name "orionsink_err"}, :sink2bts_in {:name "sink2bts_in"}, :pipeline3bts_err {:name "pipeline3bts_err"}, :stream1bts_out {:name "stream1bts_out"}, :sink1bts_err {:name "sink1bts_err"}, :pipeline1bts_in {:name "pipeline1bts_in"}, :sink3bts_err {:name "sink3bts_err"}, :sink2bts_err {:name "sink2bts_err"}, :orionpipe_err {:name "orionpipe_err"}, :pipeline1bts_err {:name "pipeline1bts_err"}, :orionbq_in {:name "orionbq_in"}, :pipeline3bts_in {:name "pipeline3bts_in"}, :orionsink_in {:name "orionsink_in"}}
-
 (def sm-pubsub-tops
   {:stream1bts-to-pipeline1bts {:name "stream1bts-to-pipeline1bts"},
    :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"},

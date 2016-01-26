@@ -9,6 +9,9 @@
    [cheshire.core :refer :all]
    [loom.alg :refer :all]
    [loom.io :refer :all]
+   [clj-time.core :as t]
+   [digest :as d]
+   [clj-uuid :as uuid]
    [loom.attr :refer :all]))
 
 (def g1 (digraph {:a [:b :c]
@@ -26,16 +29,22 @@
                   :b [:c]
                   :c nil}))
 
-(defn take-and-print [channel prefix]
+(def this-conf (atom {}))
+
+(def execute-timestamp (atom ""))
+
+(defn take-and-print [channel node]
   "just prints whatever is on channel"
   (go-loop []
-    (println prefix " sink: " (<! channel))
+    (let [out (generate-string (<! channel))
+          out-file (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
+      (println node " sink: " out)
+      (clojure.java.io/make-parents out-file)
+      (spit out-file out :append true :create true))
     (recur)))
 
 (defn construct [klass & args]
   (clojure.lang.Reflector/invokeConstructor (. Class forName klass) (to-array args)))
-
-(def this-conf (atom {}))
 
 (defn dummy-topic
   ([x]
@@ -58,7 +67,8 @@
 (defn transform-fn [g node input]
   (if-let [t (attr g node :transform-class)]
     (apply-sossity-transform t input g)
-    (apply-test-transform node input)))
+    input
+    #_(apply-test-transform node input)))
 
 (defn pass-on [in-channel g node out-channels]
   "eventually this will be used to apply a fn (or java jar or py) and fanout the results to chans"
@@ -109,37 +119,57 @@
   "annotates a node and edges in the graph with channels, returns the graph"
   ;there has got to be a better way to do this than all the nested nightmare
 
-  (let [gr  (if (= 0 (in-degree g node))                    ;if a node has nothing coming in, it's a head node
+  (let [gr  (if (= :source (attr g node :exec))                    ;if a node has nothing coming in, it's a head node
               (let [[ch p] (build-head-node)]
                 (-> g
                     (add-attr node :in-chan ch)
                     (add-attr node :pub p)))
               g)]
 
-    (println (str "out-deg: " node (out-degree gr node)))
-    (if (> (out-degree gr node) 0)
-
+    (println (str "out-deg: " node " " (out-degree gr node)))
+    (if (or (= :pipeline (attr g node :exec)) (= :source (attr g node :exec)))
       (create-outputs gr node (get-pub gr node))
 
-      (if (= 0 (out-degree gr node))
+      (if (and (= :sink (attr g node :exec)) (not= true (attr g node :error)))
         (let [out-sink (build-end-node (get-pub gr node) node)]
           (add-attr gr node :sink out-sink))
         gr                                                  ;;failure, should never be reached
 ))))
 
 (defn compose-cluster [g]
-  "creates all the pubsubs for a graph, then returns [{:nodename, chan}] for all the head nodes (ultimately to be attached to REST endpoints)"
+  "creates all the pubsubs for a graph, then returns graph"
   "reduces over a reversed depth-first traversal so a parent is building the channels for its children"
-  (let [a (reduce #(handle-graph-node %1 %2) g (reverse (post-traverse g)))
-        pipes (s/get-all-node-or-edge-attr a :in-chan)]
+  (let [a (reduce #(handle-graph-node %1 %2) g (reverse (post-traverse g)))]
     (pp/pprint a)
-    (pp/pprint pipes)
-    (map #(put! (val %) {:chans []}) pipes)))
+    a))
 
 (defn test-cluster [a-graph]
-  "given a config map, test a cluster"
+  "given a config map, test a cluster. returns [graph input-pipes]"
   (do
     (swap! this-conf (fn [x] (s/config-md a-graph)))
+    (swap! execute-timestamp (fn [x] (.toString (t/now))))
     (let [dag (s/create-dag a-graph @this-conf)]
       (setup-jars dag @this-conf)
       (compose-cluster dag))))
+
+;    (map #(put! (val %) {:chans []}) pipes)
+
+(defn handle-message [message]
+  {:timestamp     (.toString (t/now))
+   :resource_hash (d/digest "md5" (generate-string message))
+   :id            (uuid/v1)
+   :resource      message})
+
+(defn file-tester [a-graph]
+  "tests against test files in config.clj"
+  (let [g (test-cluster a-graph)
+        pipes (doall (s/get-all-node-or-edge-attr g :in-chan))
+        in-files (doall (s/get-all-node-or-edge-attr g :test-input))]
+    (doseq [pipe (keys pipes)]
+      (doseq [data (doall (parse-stream (clojure.java.io/reader (get in-files pipe)) true))]
+        (doseq [item data]
+          (put! (get pipes pipe) (handle-message item)))))))
+
+(defn rest-tester [a-graph]
+  "creates a 'dev server' with endpoints at [sourcename]/endpoint, not sure what to do with results ")
+

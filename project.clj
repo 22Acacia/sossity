@@ -15,7 +15,11 @@
                  [commons-io/commons-io "2.4"]
                  [org.flatland/useful "0.11.3"]
                  [com.cemerick/pomegranate "0.3.0"]
-                 [org.clojure/core.async "0.2.374"]]
+                 [org.clojure/core.async "0.2.374"]
+                 [danlentz/clj-uuid "0.1.6"]
+                 [digest "1.4.4"]
+
+                 [clj-time "0.11.0"]]
 
   :plugins [[lein-cljfmt "0.3.0"]]
   :main sossity.core
