@@ -30,7 +30,7 @@
 (def default-min-idle 1)
 (def default-max-idle 1)
 (def default-min-pending-latency "3s")
-(def default-max-pending-latency "automatic")
+(def default-max-pending-latency "6s")
 
 (defn source-topic-name [topic] (str topic "_out"))
 
