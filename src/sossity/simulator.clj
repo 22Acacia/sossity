@@ -139,7 +139,7 @@
 (defn test-cluster [a-graph]
   "given a config map, test a cluster"
   (do
-    (swap! this-conf (fn [x] (s/config a-graph)))
+    (swap! this-conf (fn [x] (s/config-md a-graph)))
     (let [dag (s/create-dag a-graph @this-conf)]
       (setup-jars dag @this-conf)
       (compose-cluster dag))))

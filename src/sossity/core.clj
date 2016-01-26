@@ -43,7 +43,7 @@
                                         (assoc item :exec :pipeline)
                                         (assoc item :exec :sink))))
 
-(defn config [a-graph]
+(defn config-md [a-graph]
   {:config-file a-graph
    :project (get-in a-graph [:provider :project])
    :region (get-in a-graph [:opts :zone])
@@ -144,12 +144,12 @@
         output (assoc (:cluster a-graph) :zone zone)]
     output))
 
-(defn create-sink-container [g node config]
+(defn create-sink-container [g node conf]
   (let [item_name (clojure.string/lower-case (str node "-sink"))
-        proj_name (:project config)
+        proj_name (:project conf)
         sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
         bucket_name (attr g node :bucket)
-        zone (:region config)
+        zone (:region conf)
         output {item_name {:name item_name :docker_image sink-docker-img :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name       sub_name :bucket_name bucket_name}}}]
     output))
 
@@ -175,7 +175,7 @@
   [node g]
   {node {:moduleName node :version "init" :gstorageKey gstoragekey :gstorageBucket gstoragebucket :scaling
          {:minIdleInstances default-min-idle :maxIdleInstance default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
-         :topicname  (attr g (first (out-edges g node)) :topic)}})
+         :topicName  (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
@@ -261,12 +261,10 @@
         (name-edges conf)))                                    ;return the graph?
 )
 
-;FIXME: need to have path_to_angleddream_bundled_jar? Or maybe just merge this. replica controller names have to match DNS entries, so no underscores or capital letters
 
-
-(defn create-terraform-json                                 ;gotta be a better way to clean up these 'apply merges'. NEED TO CHANGE TO USE GRAPH, NOT CONFIG, FOR BUILDING
+(defn create-terraform-json
   [a-graph]
-  (let [conf (config a-graph)
+  (let [conf (config-md a-graph)
         g (create-dag a-graph conf)
         goo-provider {:google (output-provider a-graph)}
         cli-provider {:googlecli (output-provider a-graph)}
@@ -276,7 +274,7 @@
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (create-sources g)}
-        sinks (output-sinks g a-graph)
+        sinks (output-sinks g conf)
         controllers {:googlecli_container_replica_controller sinks}
         combined {:provider (merge goo-provider cli-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows)}
@@ -295,7 +293,7 @@
 
 (defn view-graph
   [input]
-  (loom.io/view (create-dag (read-string (slurp input)) (config (read-string (slurp input))))))
+  (loom.io/view (create-dag (read-string (slurp input)) (config-md (read-string (slurp input))))))
 
 (def cli-options
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]

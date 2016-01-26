@@ -41,16 +41,20 @@
 ;{:stream1bts_err {:name "stream1bts_err"}, :orion_out {:name "orion_out"}, :pipeline2bts_in {:name "pipeline2bts_in"}, :orionbq_err {:name "orionbq_err"}, :orionpipe_in {:name "orionpipe_in"}, :sink1bts_in {:name "sink1bts_in"}, :orion_err {:name "orion_err"}, :pipeline2bts_err {:name "pipeline2bts_err"}, :sink3bts_in {:name "sink3bts_in"}, :orionsink_err {:name "orionsink_err"}, :sink2bts_in {:name "sink2bts_in"}, :pipeline3bts_err {:name "pipeline3bts_err"}, :stream1bts_out {:name "stream1bts_out"}, :sink1bts_err {:name "sink1bts_err"}, :pipeline1bts_in {:name "pipeline1bts_in"}, :sink3bts_err {:name "sink3bts_err"}, :sink2bts_err {:name "sink2bts_err"}, :orionpipe_err {:name "orionpipe_err"}, :pipeline1bts_err {:name "pipeline1bts_err"}, :orionbq_in {:name "orionbq_in"}, :pipeline3bts_in {:name "pipeline3bts_in"}, :orionsink_in {:name "orionsink_in"}}
 
 (def sm-pubsub-tops
-  {:pipeline1bts_in {:name "pipeline1bts_in"},
-   :pipeline1bts_err {:name "pipeline1bts_err"},
-   :sink1bts_in {:name "sink1bts_in"},
-   :sink1bts_err {:name "sink1bts_err"},
-   :stream1bts_out {:name "stream1bts_out"},
-   :stream1bts_err {:name "stream1bts_err"}})
+  {:stream1bts-to-pipeline1bts {:name "stream1bts-to-pipeline1bts"},
+   :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"},
+   :pipeline1bts-to-sink1bts {:name "pipeline1bts-to-sink1bts"},
+   :sink1bts-to-sink1bts-error {:name "sink1bts-to-sink1bts-error"}})
 
-(def sm-pubsub-subs  {:sink1bts_sub {:name "sink1bts_sub",
-                                     :topic "sink1bts_in",
-                                     :depends_on ["google_pubsub_topic.sink1bts_in"]}})
+(def sm-pubsub-subs  {:pipeline1bts-to-pipeline1bts-error_sub {:name "pipeline1bts-to-pipeline1bts-error_sub",
+                                                               :topic "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
+                                                               :depends_on ["google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"]},
+                      :pipeline1bts-to-sink1bts_sub {:name "pipeline1bts-to-sink1bts_sub",
+                                                     :topic "projects/hx-test/topics/pipeline1bts-to-sink1bts",
+                                                     :depends_on ["google_pubsub_topic.pipeline1bts-to-sink1bts"]},
+                      :sink1bts-to-sink1bts-error_sub {:name "sink1bts-to-sink1bts-error_sub",
+                                                       :topic "projects/hx-test/topics/sink1bts-to-sink1bts-error",
+                                                       :depends_on ["google_pubsub_topic.sink1bts-to-sink1bts-error"]}})
 
 (def sm-container-cluster {:hx_fstack_cluster {:name "hxhstack",
                                                :initial_node_count 3,
@@ -63,42 +67,45 @@
                                                                             "https://www.googleapis.com/auth/cloud-platform"]
                                                              :machine_type "n1-standard-4"}}})
 
-(def sm-replica-controllers {:stream1bts-source {:name "stream1bts-source",
-                                                 :docker_image "gcr.io/hx-test/source-master",
-                                                 :external_port "8080",
-                                                 :container_name "${google_container_cluster.hx_fstack_cluster.name}",
-                                                 :zone "europe-west1-c",
-                                                 :env_args {:post_route "/stream1bts/post",
-                                                            :health_route "/stream1bts/health",
-                                                            :stream_name "projects/hx-test/topics/stream1bts_out"}},
-                             :sink1bts-sink {:name "sink1bts-sink",
+(def sm-replica-controllers {:sink1bts-sink {:name "sink1bts-sink",
                                              :docker_image "gcr.io/hx-test/store-sink",
                                              :container_name "${google_container_cluster.hx_fstack_cluster.name}",
                                              :zone "europe-west1-c",
                                              :env_args {:num_retries 3,
                                                         :batch_size 1000,
                                                         :proj_name "hx-test",
-                                                        :sub_name "sink1bts_sub",
+                                                        :sub_name "pipeline1bts-to-sink1bts_sub",
                                                         :bucket_name "sink1-bts-test"}}})
 
-(def sm-bucket {:sink1-bts-test {:name "sink1-bts-test", :force_destroy true, :location "EU"}})
+(def sm-bucket {:pipeline1bts-error {:name          "pipeline1bts-error",
+                                     :force_destroy true,
+                                     :location      "EU"},
+                :sink1-bts-test     {:name "sink1-bts-test", :force_destroy true, :location "EU"},
+                :sink1bts-error     {:name "sink1bts-error", :force_destroy true, :location "EU"}})
+
+
+(def sm-appengine {:stream1bts {:moduleName     "stream1bts",
+                                :version        "init",
+                                :gstorageKey    "hxtest-1.0-SNAPSHOT",
+                                :gstorageBucket "build-artifacts-public-eu",
+                                :scaling        {:minIdleInstances  1,
+                                                 :maxIdleInstance   1,
+                                                 :minPendingLatency "30ms",
+                                                 :maxPendingLatency "automatic"},
+                                :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"}})
 
 (def sm-dataflows {:pipeline1bts {:name "pipeline1bts",
-                                  :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline1.jar",
+                                  :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline3.jar",
                                   :class "com.acacia.angleddream.Main",
-                                  :depends_on ["google_pubsub_topic.sink1bts_in"
-                                               "googlecli_container_replica_controller.stream1bts-source"
-                                               "google_pubsub_topic.pipeline1bts_err"
-                                               "google_pubsub_topic.stream1bts_out"],
-                                  :optional_args {:stagingLocation "gs://hx-test/staging-eu",
-                                                  :zone "europe-west1-c",
-                                                  :workerMachineType "n1-standard-1",
-                                                  :errorPipelineName "projects/hx-test/topics/pipeline1bts_err",
-                                                  :pubsubTopic "projects/hx-test/topics/stream1bts_out",
-                                                  :numWorkers "1",
-                                                  :outputTopics "projects/hx-test/topics/sink1bts_in",
+                                  :depends_on ["google_pubsub_topic.pipeline1bts-to-sink1bts"
+                                               "googlecli_container_replica_controller.stream1bts"
+                                               "googlecli_dataflow.stream1bts"
+                                               "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
+                                               "google_pubsub_topic.stream1bts-to-pipeline1bts"],
+                                  :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
                                                   :pipelineName "pipeline1bts",
-                                                  :maxNumWorkers "1"}}})
+                                                  :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
+                                                  :outputTopics "projects/hx-test/topics/pipeline1bts-to-sink1bts"}}})
 
 (deftest test-small-graph
   (let [g (create-parsed-output small-test-gr)]
@@ -110,6 +117,8 @@
       (is (= sm-pubsub-subs (get-in g [:resource :google_pubsub_subscription]))))
     (testing "container cluster"
       (is (= sm-container-cluster (get-in g [:resource :google_container_cluster]))))
+    (testing "appengine nodes"
+      (is (= sm-appengine (get-in g [:resource :googleappengine_app]))))
     (testing "Replica controllers"
       (is (= sm-replica-controllers (get-in g [:resource :googlecli_container_replica_controller]))))
     (testing "Storage buckets"
