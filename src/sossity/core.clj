@@ -190,7 +190,7 @@
         class angledream-class
         output-depends (map #(str pt-prefix "." %) (map #(attr g % :name) output-edges))
         input-depends (str pt-prefix "." (attr g input-edge :name))
-        error-depends (str pt-prefix "." (attr g error-edge :name))
+        error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends])  input-depends])
         classpath (clojure.string/join (interpose ":" [(get-in conf [:config-file :config :remote-composer-classpath])
                                                        (str (:remote-libs-path conf) "/" (attr g node :transform-jar))])) ;classpath has only one dash!
@@ -225,7 +225,11 @@
                     (filter-node-attrs g :exec :source))))
 
 (defn output-sinks [g conf]
-  (apply merge (map #(create-sink-container g % conf) (filter-node-attrs g :exec :sink))))
+  (let [sinks (filter-node-attrs g :exec :sink)
+        out-sinks (if-not (get-in conf [:config-file :config :error-buckets])
+                    (filter-not-node-attrs g :error true sinks)
+                    sinks)]
+    (apply merge (map #(create-sink-container g % conf) out-sinks))))
 
 (defn output-subs [g]
   (apply merge (map #(create-subs g %) (filter-node-attrs g :type "gcs"))))
@@ -244,16 +248,15 @@
         (add-attr name :type "gcs")
         (add-attr name :exec :sink)
         (add-attr name :bucket name)
+        (add-attr name :error true)
         (add-edges [parent name])
         (add-attr-to-edges :type :error [[parent name]]))))
 
 (defn add-error-sinks
   "Add error sinks to every non-source item on the graph. Sources don't have errors because they should return a 4xx or 5xx when something gone wrong"
   [g conf]
-  (if (get-in conf [:config-file :config :error-buckets])
-    (let [connected (filter #(> (in-degree g %1) 0) (nodes g))]
-      (reduce #(add-error-sink-node %1 %2) g connected))
-    g))
+  (let [connected (filter #(> (in-degree g %1) 0) (nodes g))]
+    (reduce #(add-error-sink-node %1 %2) g connected)))
 
 (defn create-dag
   [a-graph conf]
