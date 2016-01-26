@@ -8,19 +8,23 @@
                          g) true))
 
 (def small-test-gr
-  {:config {:composer-classpath ["/usr/local/lib/angleddream-bundled.jar"]}
-   :cluster   {:name "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
+  {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
+               :local-angleddream-path    "/home/bradford/proj/angled-dream/target/angleddream-bundled-0.1-ALPHA.jar"
+               :remote-libs-path          "/usr/local/lib"}
+   :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
                                             "https://www.googleapis.com/auth/logging.write"
                                             "https://www.googleapis.com/auth/monitoring"
                                             "https://www.googleapis.com/auth/cloud-platform"]
                              :machine_type "n1-standard-4"}}
-   :opts      {:maxNumWorkers      "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1"
-               :stagingLocation    "gs://hx-test/staging-eu"}
-   :provider           {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
+   :opts      {:maxNumWorkers   "1" :numWorkers "1" :zone "europe-west1-c" :workerMachineType "n1-standard-1"
+               :stagingLocation "gs://hx-test/staging-eu"}
+   :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
    :pipelines {"pipeline1bts"
-               {:transform-graph ["/usr/local/lib/pipeline1.jar"]}}
+               {:transform-jar   "pipeline3.jar"
+                :local-jar-path  "/home/bradford/proj/pipeline-examples/pipeline3/target/pipeline3-bundled-0.1-ALPHA.jar"
+                :transform-class "com.acacia.pipeline3.AppendStringComposer"}}
    :sources   {"stream1bts" {:type "kub"}}
    :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
    :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
@@ -125,13 +129,13 @@
                :stagingLocation "gs://hx-test/staging-eu"}
    :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}"  :project "hx-test"}
    :pipelines {"pipeline1bts"
-               {:transform-graph ["/usr/local/lib/pipeline1.jar"]}
+               {:transform-jar ["/usr/local/lib/pipeline1.jar"]}
                "pipeline2bts"
-               {:transform-graph ["/usr/local/lib/pipeline2.jar"]}
+               {:transform-jar ["/usr/local/lib/pipeline2.jar"]}
                "pipeline3bts"
-               {:transform-graph ["/usr/local/lib/pipeline3.jar"]}
+               {:transform-jar ["/usr/local/lib/pipeline3.jar"]}
                "orionpipe"
-               {:transform-graph ["/usr/local/lib/pipeline1.jar"]}}
+               {:transform-jar ["/usr/local/lib/pipeline1.jar"]}}
    :sources   {"stream1bts" {:type "kub"}
                "stream2bts" {:type "kub"}
                "orion" {:type "kub"}}

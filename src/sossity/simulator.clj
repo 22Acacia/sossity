@@ -2,8 +2,11 @@
   (:require
    [clojure.core.async :as a
     :refer [>! <! >!! <!! go chan buffer close! thread alts! alts!! timeout pub sub unsub unsub-all go-loop put!]]
-
+   [sossity.core :as s]
+   [clojure.pprint :as pp]
+   [cemerick.pomegranate :as pom]
    [loom.graph :refer :all]
+   [cheshire.core :refer :all]
    [loom.alg :refer :all]
    [loom.io :refer :all]
    [loom.attr :refer :all]))
@@ -29,45 +32,68 @@
     (println prefix " sink: " (<! channel))
     (recur)))
 
-(defn pass-on [in-channel node out-channels]
+(defn construct [klass & args]
+  (clojure.lang.Reflector/invokeConstructor (. Class forName klass) (to-array args)))
+
+(def this-conf (atom {}))
+
+(defn dummy-topic
+  ([x]
+   :topic)
+  ([] :topic))
+
+(defn setup-jars [g sossity-config]
+  "load angled-dream and all relevant jars. sossity-config is a global ref, but fuckit"
+  (do (doall (map #(pom/add-classpath (val %)) (s/get-all-node-or-edge-attr g :local-jar-path)))
+      (pom/add-classpath (:local-angleddream-path sossity-config))))
+
+(defn apply-test-transform [node input]
+  (assoc input :chans (conj (:chans input) node)))
+
+(defn apply-sossity-transform [composer-class input g]
+  (do (setup-jars g @this-conf)
+      (let [clazz (construct "com.acacia.sdk.AbstractTransformTester" (construct composer-class))] ;loaded at run-time
+        (-> (.apply clazz (generate-string input)) (decode true)))))
+
+(defn transform-fn [g node input]
+  (if-let [t (attr g node :transform-class)]
+    (apply-sossity-transform t input g)
+    (apply-test-transform node input)))
+
+(defn pass-on [in-channel g node out-channels]
   "eventually this will be used to apply a fn (or java jar or py) and fanout the results to chans"
   (go-loop []
     (let [v (<! in-channel)]
       (println node ": " v)
       (doseq  [c out-channels]
-        (>! c (assoc v :chans (conj (:chans v) node)))))
+        (>! c (transform-fn g node v))))
     (recur)))
 
-(defn get-node-or-edge-attr [g k]
-  "return an attribute from all nodes"
-  (reduce #(let [a (attr g %2 k)]
-             (if (some? a)
-               (assoc %1 %2 a))) {} (nodes g)))
-
-(defn build-node [input-pub node output-topics]
+(defn build-node [input-pub g node output-topics]
   "returns a seq of output publications for a node to talk to"
   (let [input (chan)
         out-chans (repeatedly (count output-topics) chan)
-        out-pubs  (doall (map #(pub % (fn [x] :topic  #_(not= x nil))) out-chans))]
-    (sub input-pub :topic  input)
-    (pass-on input node out-chans)
+        out-pubs  (doall (map #(pub % (fn [x] (dummy-topic x))) out-chans))]
+    (sub input-pub (dummy-topic)  input)
+    (pass-on input g node out-chans)
     out-pubs))
 
 (defn build-end-node [input-pub node]
   "simulates a sink by attaching a fn to the channel that just prints"
   (let [input (chan)]
-    (sub input-pub :topic input)
+    (sub input-pub (dummy-topic) input)
     (take-and-print input node)))
 
 (defn build-head-node []
   "returns the channel and pub for a head node"
   (let [input (chan)]
-    [input (pub input :topic)]))
+    [input (pub input dummy-topic)]))
 
 (defn create-outputs [g node source-pub]
   "returns graph after outputs created"
   (let [outward-edges (out-edges g node)
         out-pubs (build-node source-pub
+                             g
                              node
                              outward-edges)]
     (println "creating outputs: " node)
@@ -105,8 +131,15 @@
   "creates all the pubsubs for a graph, then returns [{:nodename, chan}] for all the head nodes (ultimately to be attached to REST endpoints)"
   "reduces over a reversed depth-first traversal so a parent is building the channels for its children"
   (let [a (reduce #(handle-graph-node %1 %2) g (reverse (post-traverse g)))
-        pipes (get-node-or-edge-attr a :in-chan)]
+        pipes (s/get-all-node-or-edge-attr a :in-chan)]
+    (pp/pprint a)
+    (pp/pprint pipes)
+    (map #(put! (val %) {:chans []}) pipes)))
 
-    (println a)
-    (put! (:a pipes) {:topic :topic :dest "/#home"})))
-
+(defn test-cluster [a-graph]
+  "given a config map, test a cluster"
+  (do
+    (swap! this-conf (fn [x] (s/config a-graph)))
+    (let [dag (s/create-dag a-graph @this-conf)]
+      (setup-jars dag @this-conf)
+      (compose-cluster dag))))

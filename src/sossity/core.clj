@@ -40,7 +40,10 @@
 (defn config [a-graph]
   {:config-file a-graph
    :project (get-in a-graph [:provider :project])
-   :region (get-in a-graph [:opts :zone])})
+   :region (get-in a-graph [:opts :zone])
+   :remote-composer-classpath     (get-in a-graph [:config :remote-composer-classpath])
+   :local-angleddream-path (get-in a-graph [:config :local-angleddream-path])
+   :remote-libs-path (get-in a-graph [:config :remote-libs-path])})
 
 (defn build-items [g node md]
   "Add each metadata per node"                              ;may need to add some kinda filter on this
@@ -50,10 +53,11 @@
   "Annotate nodes w/ metadata"
   (reduce #(build-items %1 %2 (item-metadata %2 a-graph)) g nodes))
 
-(defn get-node-or-edge-attr [g k]
+(defn get-all-node-or-edge-attr [g k]
   (reduce #(let [a (attr g %2 k)]
              (if (some? a)
-               (assoc %1 %2 a))) {} (nodes g)))
+               (assoc %1 %2 a)
+               %1)) {} (nodes g)))
 
 (defn anns [g a-graph]
   "Traverse graph and annotate nodes w/ metadata"
@@ -195,7 +199,7 @@
 
 (defn create-appengine-module [g node config])
 
-(defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-graph?
+(defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
   (let [output-edges (filter-not-edge-attrs g :type :error (out-edges g node))
         input-edge (first (filter-not-edge-attrs g :type :error (in-edges g node)))
@@ -210,7 +214,7 @@
         error-depends (str pt-prefix "." (attr g error-edge :name))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends])  input-depends])
         cli-map (:config (:config-file conf))
-        classpath (clojure.string/join (interpose ":" (concat (get-in config [:config-file :composer-classpath]) (attr g node :transform-graph)))) ;classpath has only one dash!
+        classpath (clojure.string/join (interpose ":" (concat (get-in config [:config-file :remote-composer-classpath]) (str (:remote-libs-path config) "/" (attr g node :transform-jar))))) ;classpath has only one dash!
         opt-map {:pubsubTopic  input-topic
                  :pipelineName node
                  :errorPipelineName error-topic}
