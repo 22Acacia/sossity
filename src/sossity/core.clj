@@ -24,6 +24,12 @@
 (def default-bucket-location "EU")
 (def default-force-bucket-destroy true)
 (def sub-suffix "_sub")
+(def gstoragebucket "build-artifacts-public-eu")
+(def gstoragekey "hxtest-1.0-SNAPSHOT")
+(def default-min-idle 1)
+(def default-max-idle 1)
+(def default-min-pending-latency "30ms")
+(def default-max-pending-latency "automatic")
 
 (defn source-topic-name [topic] (str topic "_out"))
 
@@ -72,9 +78,9 @@
 
 (defn filter-not-node-attrs
   ([g keyword value]
-   (filter (fn [x] (= value (attr g x keyword))) (nodes g)))
+   (filter (fn [x] (not= value (attr g x keyword))) (nodes g)))
   ([g keyword value nodes]
-   (filter (fn [x] (= value (attr g x keyword))) nodes)))
+   (filter (fn [x] (not= value (attr g x keyword))) nodes)))
 
 (defn filter-not-edge-attrs
   ([g keyword value]
@@ -92,28 +98,12 @@
 ;CASE-SENSITIVE
 
 
-(defn is-dataflow-job?
-  "Determines if item is dataflow job. eventually should be done by checking in-degree and out-degree = at least 1, but for now just check metadata"
-  [g node a-graph]
-  (or
-   (not (= nil (get-in a-graph [:pipelines node])))
-   (= :pipeline (attr g node :exec))
-   (= "bq" (attr g node :type))))
-
 (defn is-bigquery?
   [g node]
   (= "bq" (attr g node :type)))
 
-(defn is-pipeline?
-  [g node]
-  (= :pipeline (attr g node :exec)))
-
-(defn is-cloud-storage?
-  [g node]
-  (= "gcs" (attr g node :type)))
-
 (defn topic
-  [node project]
+  [project node]
   (str "projects/" project "/topics/" node))
 
 (defn name-edge
@@ -136,10 +126,6 @@
    g
    (apply-edge-metadata :name name-edge)
    (apply-edge-metadata :topic topic-edge conf)))
-
-(defn non-sink-successors
-  [g node]
-  (filter #(> (out-degree g %1) 0) (successors g node)))
 
 (defn predecessor-depends
   "Determine which resources a node depends on"
@@ -171,7 +157,7 @@
   "make a subscription for every node of type gcs based on the inbound edge [for now should only be 1 inbound edge]"
   (let [name (str (attr g edge :name) sub-suffix)
         topic (attr g edge :topic)]
-    {name {:name name :topic topic :depends_on [(str pt-prefix "." name)]}}))
+    {name {:name name :topic topic :depends_on [(str pt-prefix "." (attr g edge :name))]}}))
 
 (defn create-subs [g node]
   (apply merge (map #(create-sub g %) (in-edges g node))))
@@ -184,20 +170,12 @@
 
 
 ;;add depeendencies
-(defn create-source-container
+(defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
-  [item a-graph]
-  (let [node (key item)
-        post_route (str "/" node "/post")
-        health_route (str "/" node "/health")
-        item_name (str node "-source")
-        stream_name (topic (get-in a-graph [:provider :project]) (source-topic-name node))
-        container_name "${google_container_cluster.hx_fstack_cluster.name}"
-        zone (get-in a-graph [:opts :zone])
-        output {item_name {:name item_name :docker_image source-image :external_port source-port :container_name container_name :zone zone :env_args {:post_route post_route :health_route health_route :stream_name stream_name}}}]
-    output))
-
-(defn create-appengine-module [g node config])
+  [node g]
+  {node {:moduleName node :version "init" :gstorageKey gstoragekey :gstorageBucket gstoragebucket :scaling
+         {:minIdleInstances default-min-idle :maxIdleInstance default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+         :topicname  (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
@@ -213,8 +191,8 @@
         input-depends (str pt-prefix "." (attr g input-edge :name))
         error-depends (str pt-prefix "." (attr g error-edge :name))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends])  input-depends])
-        cli-map (:config (:config-file conf))
-        classpath (clojure.string/join (interpose ":" (concat (get-in config [:config-file :remote-composer-classpath]) (str (:remote-libs-path config) "/" (attr g node :transform-jar))))) ;classpath has only one dash!
+        classpath (clojure.string/join (interpose ":" [(get-in conf [:config-file :config :remote-composer-classpath])
+                                                       (str (:remote-libs-path conf) "/" (attr g node :transform-jar))])) ;classpath has only one dash!
         opt-map {:pubsubTopic  input-topic
                  :pipelineName node
                  :errorPipelineName error-topic}
@@ -223,7 +201,7 @@
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (attrs g node) :type))
-        optional-args (apply merge cli-map opt-mapb (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)]
+        optional-args (apply merge opt-mapb (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)]
     {node {:name          node
            :classpath     classpath
            :class         class
@@ -241,9 +219,9 @@
 (defn output-pubsub [g]
   (apply merge (map #(assoc-in {} [(attr g % :name) :name] (attr g % :name)) (edges g))))
 
-(defn create-sources [a-graph]
-  (apply merge (map #(create-source-container % a-graph)
-                    (:sources a-graph))))
+(defn create-sources [g]
+  (apply merge (map #(create-appengine-module % g)
+                    (filter-node-attrs g :exec :source))))
 
 (defn output-sinks [g conf]
   (apply merge (map #(create-sink-container g % conf) (filter-node-attrs g :exec :sink))))
@@ -297,11 +275,11 @@
         buckets {:google_storage_bucket (output-buckets g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
-        sources (apply merge (create-sources a-graph))
+        sources {:googleappengine_app (create-sources g)}
         sinks (output-sinks g a-graph)
         controllers {:googlecli_container_replica_controller sinks}
         combined {:provider (merge goo-provider cli-provider)
-                  :resource (merge pubsubs subscriptions container-cluster controllers buckets dataflows)}
+                  :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
