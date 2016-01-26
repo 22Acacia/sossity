@@ -29,7 +29,7 @@
 (def gstoragekey "hxtest-1.0-SNAPSHOT")
 (def default-min-idle 1)
 (def default-max-idle 1)
-(def default-min-pending-latency "30ms")
+(def default-min-pending-latency 30)
 (def default-max-pending-latency "automatic")
 
 (defn source-topic-name [topic] (str topic "_out"))
@@ -157,7 +157,7 @@
 (defn create-sub [g edge]
   "make a subscription for every node of type gcs based on the inbound edge [for now should only be 1 inbound edge]"
   (let [name (str (attr g edge :name) sub-suffix)
-        topic (attr g edge :topic)]
+        topic (attr g edge :name)]
     {name {:name name :topic topic :depends_on [(str pt-prefix "." (attr g edge :name))]}}))
 
 (defn create-subs [g node]
