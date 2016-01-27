@@ -5,9 +5,14 @@
    [loom.io :refer :all]
    [loom.attr :refer :all]
    [cheshire.core :refer :all]
+   [sossity.simulator :as sim]
+   [sossity.util :as u]
    [flatland.useful.experimental :refer :all]
    [clojure.tools.cli :refer [parse-opts]]
-   [traversy.lens :as t :refer :all :exclude [view update combine]])
+   [traversy.lens :as t :refer :all :exclude [view update combine]]
+   [clj-time.core :as ti]
+   [clojure.core.async :as a
+    :refer [>! <! >!! <!! go chan buffer close! thread alts! alts!! timeout pub sub unsub unsub-all go-loop put!]])
   (:gen-class))
 
 (def crc-prefix "googlecli_container_replica_controller")
@@ -60,40 +65,10 @@
   "Annotate nodes w/ metadata"
   (reduce #(build-items %1 %2 (item-metadata %2 a-graph)) g nodes))
 
-(defn get-all-node-or-edge-attr [g k]
-  (reduce #(let [a (attr g %2 k)]
-             (if (some? a)
-               (assoc %1 %2 a)
-               %1)) {} (nodes g)))
-
 (defn anns [g a-graph]
   "Traverse graph and annotate nodes w/ metadata"
   (let [t (bf-traverse g)] ;traverse graph to get list of nodes
     (build-annot g t a-graph)))
-
-(defn filter-node-attrs
-  ([g keyword value]
-   (filter (fn [x] (= value (attr g x keyword))) (nodes g)))
-  ([g keyword value nodes]
-   (filter (fn [x] (= value (attr g x keyword))) nodes)))
-
-(defn filter-not-node-attrs
-  ([g keyword value]
-   (filter (fn [x] (not= value (attr g x keyword))) (nodes g)))
-  ([g keyword value nodes]
-   (filter (fn [x] (not= value (attr g x keyword))) nodes)))
-
-(defn filter-not-edge-attrs
-  ([g keyword value]
-   (filter (fn [x] (not= value (attr g x keyword))) (edges g)))
-  ([g keyword value edges]
-   (filter (fn [x] (not= value (attr g x keyword))) edges)))
-
-(defn filter-edge-attrs
-  ([g keyword value]
-   (filter (fn [x] (= value (attr g x keyword))) (edges g)))
-  ([g keyword value edges]
-   (filter (fn [x] (= value (attr g x keyword))) edges)))
 
 ;NEED ERROR CHECKING - make sure all sources and sinks are in execution graph, etc
 ;CASE-SENSITIVE
@@ -132,8 +107,8 @@
   "Determine which resources a node depends on"
   [g node]
   (let [preds (predecessors g node)
-        sources (filter-node-attrs g :exec :source preds)
-        jobs (filter-node-attrs g :exec :pipeline preds)
+        sources (u/filter-node-attrs g :exec :source preds)
+        jobs (u/filter-node-attrs g :exec :pipeline preds)
         source-names (mapv #(str app-prefix "." %) sources)
         job-names (mapv #(str df-prefix "." %)  jobs)]
     (conj source-names job-names)))
@@ -180,9 +155,9 @@
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
-  (let [output-edges (filter-not-edge-attrs g :type :error (out-edges g node))
-        input-edge (first (filter-not-edge-attrs g :type :error (in-edges g node)))
-        error-edge (first (filter-edge-attrs g :type :error (out-edges g node)))
+  (let [output-edges (u/filter-not-edge-attrs g :type :error (out-edges g node))
+        input-edge (first (u/filter-not-edge-attrs g :type :error (in-edges g node)))
+        error-edge (first (u/filter-edge-attrs g :type :error (out-edges g node)))
         predecessor-depends (predecessor-depends g node)
         output-topics (map #(attr g % :topic) output-edges)
         error-topic (attr g error-edge :topic)
@@ -202,7 +177,7 @@
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (attrs g node) :type))
-        optional-args (apply merge opt-mapb (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)]
+        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)]
     {node {:name          node
            :classpath     classpath
            :class         class
@@ -211,7 +186,7 @@
 
 
 (defn create-dataflow-jobs [g conf]
-  (apply merge (map #(create-dataflow-job g % conf) (filter-node-attrs g :exec :pipeline))))
+  (apply merge (map #(create-dataflow-job g % conf) (u/filter-node-attrs g :exec :pipeline))))
 
 (defn output-provider
   [provider-map]
@@ -222,17 +197,17 @@
 
 (defn create-sources [g]
   (apply merge (map #(create-appengine-module % g)
-                    (filter-node-attrs g :exec :source))))
+                    (u/filter-node-attrs g :exec :source))))
 
 (defn output-sinks [g conf]
-  (let [sinks (filter-node-attrs g :exec :sink)
+  (let [sinks (u/filter-node-attrs g :exec :sink)
         out-sinks (if-not (get-in conf [:config-file :config :error-buckets])
-                    (filter-not-node-attrs g :error true sinks)
+                    (u/filter-not-node-attrs g :error true sinks)
                     sinks)]
     (apply merge (map #(create-sink-container g % conf) out-sinks))))
 
 (defn output-subs [g]
-  (apply merge (map #(create-subs g %) (filter-node-attrs g :type "gcs"))))
+  (apply merge (map #(create-subs g %) (u/filter-node-attrs g :type "gcs"))))
 
 (defn output-buckets [g]
   (apply merge (map #(create-bucket g %) (nodes g))))
@@ -274,6 +249,7 @@
         g (create-dag a-graph conf)
         goo-provider {:google (output-provider a-graph)}
         cli-provider {:googlecli (output-provider a-graph)}
+        app-provider {:googleappengine (output-provider a-graph)}
         pubsubs {:google_pubsub_topic (output-pubsub g)}
         subscriptions {:google_pubsub_subscription (output-subs g)}
         buckets {:google_storage_bucket (output-buckets g)}
@@ -282,7 +258,7 @@
         sources {:googleappengine_app (create-sources g)}
         sinks  (output-sinks g conf)
         controllers {:googlecli_container_replica_controller sinks}
-        combined {:provider (merge goo-provider cli-provider)
+        combined {:provider (merge goo-provider cli-provider app-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
@@ -301,16 +277,36 @@
   [input]
   (loom.io/view (create-dag (read-string (slurp input)) (config-md (read-string (slurp input))))))
 
+(defn test-cluster [a-graph]
+  "given a config map, test a cluster. returns [graph input-pipes]"
+  (do
+    (swap! sim/this-conf (fn [x] (config-md a-graph)))
+    (swap! sim/execute-timestamp (fn [x] (.toString (ti/now))))
+    (let [dag (create-dag a-graph @sim/this-conf)]
+      (sim/setup-jars dag @sim/this-conf)
+      (sim/compose-cluster dag))))
+
+(defn file-tester [a-graph]
+  "tests against test files in config.clj"
+  (let [g (test-cluster a-graph)
+        pipes (doall (u/get-all-node-or-edge-attr g :in-chan))
+        in-files (doall (u/get-all-node-or-edge-attr g :test-input))]
+    (doseq [pipe (keys pipes)]
+      (doseq [data (doall (parse-stream (clojure.java.io/reader (get in-files pipe)) true))]
+        (put! (get pipes pipe) (sim/handle-message data))))))
+
 (def cli-options
   [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
-   #_["-cr" "--credentials" "location to credentials file for terraform to use"]])
-
+   ["-s" "--sim" "simulate cluster, running input scripts and producing file output"]])
 (defn -main
   "Entry Point"
   [& args]
   (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))]
     (do
       (if (:view opts) (view-graph (:config opts)))
-      (read-and-create (:config opts) (:output opts)))))
+      (if (:sim opts)
+        (file-tester (read-string (slurp (:config opts))))
+        (read-and-create (:config opts) (:output opts))))))
+

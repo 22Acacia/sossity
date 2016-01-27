@@ -37,7 +37,10 @@
                             :region      "europe-west1-c"},
                   :googlecli {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
                               :project     "hx-test",
-                              :region      "europe-west1-c"}})
+                              :region      "europe-west1-c"}
+                  :googleappengine {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
+                                    :project     "hx-test",
+                                    :region      "europe-west1-c"}})
 (def sm-pubsub-tops
   {:stream1bts-to-pipeline1bts {:name "stream1bts-to-pipeline1bts"},
    :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"},
@@ -119,7 +122,12 @@
                                   :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
                                                   :pipelineName "pipeline1bts",
                                                   :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
-                                                  :outputTopics "projects/hx-test/topics/pipeline1bts-to-sink1bts"}}})
+                                                  :outputTopics "projects/hx-test/topics/pipeline1bts-to-sink1bts"
+                                                  :stagingLocation "gs://hx-test/staging-eu",
+                                                  :zone "europe-west1-c",
+                                                  :workerMachineType "n1-standard-1",
+                                                  :numWorkers "1",
+                                                  :maxNumWorkers "1"}}})
 
 (deftest test-small-graph
   (let [g (create-parsed-output small-test-gr)]
@@ -182,7 +190,10 @@
                             :region "europe-west1-c"},
                    :googlecli {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
                                :project "hx-test",
-                               :region "europe-west1-c"}})
+                               :region "europe-west1-c"}
+                   :googleappengine {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}",
+                                     :project "hx-test",
+                                     :region "europe-west1-c"}})
 
 (def big-pubsub-tops  {:sink3bts-to-sink3bts-error {:name "sink3bts-to-sink3bts-error"},
                        :pipeline3bts-to-sink2bts {:name "pipeline3bts-to-sink2bts"},
@@ -389,7 +400,12 @@
                                    :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
                                                    :pipelineName "pipeline1bts",
                                                    :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
-                                                   :outputTopics "projects/hx-test/topics/pipeline1bts-to-pipeline3bts,projects/hx-test/topics/pipeline1bts-to-pipeline2bts"}},
+                                                   :outputTopics "projects/hx-test/topics/pipeline1bts-to-pipeline3bts,projects/hx-test/topics/pipeline1bts-to-pipeline2bts"
+                                                   :stagingLocation "gs://hx-test/staging-eu",
+                                                   :zone "europe-west1-c",
+                                                   :workerMachineType "n1-standard-1",
+                                                   :numWorkers "1",
+                                                   :maxNumWorkers "1"}},
                     :pipeline3bts {:name "pipeline3bts",
                                    :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline3.jar",
                                    :class "com.acacia.angleddream.Main",
@@ -400,7 +416,12 @@
                                    :optional_args {:pubsubTopic "projects/hx-test/topics/pipeline1bts-to-pipeline3bts",
                                                    :pipelineName "pipeline3bts",
                                                    :errorPipelineName "projects/hx-test/topics/pipeline3bts-to-pipeline3bts-error",
-                                                   :outputTopics "projects/hx-test/topics/pipeline3bts-to-sink2bts"}},
+                                                   :outputTopics "projects/hx-test/topics/pipeline3bts-to-sink2bts"
+                                                   :stagingLocation "gs://hx-test/staging-eu",
+                                                   :zone "europe-west1-c",
+                                                   :workerMachineType "n1-standard-1",
+                                                   :numWorkers "1",
+                                                   :maxNumWorkers "1"}},
                     :pipeline2bts {:name "pipeline2bts",
                                    :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline2.jar",
                                    :class "com.acacia.angleddream.Main",
@@ -412,7 +433,12 @@
                                    :optional_args {:pubsubTopic "projects/hx-test/topics/pipeline1bts-to-pipeline2bts",
                                                    :pipelineName "pipeline2bts",
                                                    :errorPipelineName "projects/hx-test/topics/pipeline2bts-to-pipeline2bts-error",
-                                                   :outputTopics "projects/hx-test/topics/pipeline2bts-to-sink3bts,projects/hx-test/topics/pipeline2bts-to-sink1bts"}},
+                                                   :outputTopics "projects/hx-test/topics/pipeline2bts-to-sink3bts,projects/hx-test/topics/pipeline2bts-to-sink1bts"
+                                                   :stagingLocation "gs://hx-test/staging-eu",
+                                                   :zone "europe-west1-c",
+                                                   :workerMachineType "n1-standard-1",
+                                                   :numWorkers "1",
+                                                   :maxNumWorkers "1"}},
                     :orionpipe {:name "orionpipe",
                                 :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar",
                                 :class "com.acacia.angleddream.Main",
@@ -423,7 +449,12 @@
                                 :optional_args {:pubsubTopic "projects/hx-test/topics/orion-to-orionpipe",
                                                 :pipelineName "orionpipe",
                                                 :errorPipelineName "projects/hx-test/topics/orionpipe-to-orionpipe-error",
-                                                :outputTopics "projects/hx-test/topics/orionpipe-to-orionsink"}}})
+                                                :outputTopics "projects/hx-test/topics/orionpipe-to-orionsink"
+                                                :stagingLocation "gs://hx-test/staging-eu",
+                                                :zone "europe-west1-c",
+                                                :workerMachineType "n1-standard-1",
+                                                :numWorkers "1",
+                                                :maxNumWorkers "1"}}})
 
 (def big-appengine {:stream1bts {:moduleName     "stream1bts",
                                  :version        "init",

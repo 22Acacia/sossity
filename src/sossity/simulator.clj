@@ -2,7 +2,7 @@
   (:require
    [clojure.core.async :as a
     :refer [>! <! >!! <!! go chan buffer close! thread alts! alts!! timeout pub sub unsub unsub-all go-loop put!]]
-   [sossity.core :as s]
+
    [clojure.pprint :as pp]
    [cemerick.pomegranate :as pom]
    [loom.graph :refer :all]
@@ -12,7 +12,8 @@
    [clj-time.core :as t]
    [digest :as d]
    [clj-uuid :as uuid]
-   [loom.attr :refer :all]))
+   [loom.attr :refer :all]
+   [sossity.util :as u]))
 
 (def g1 (digraph {:a [:b :c]
                   :b [:d]
@@ -55,7 +56,7 @@
 
 (defn setup-jars [g sossity-config]
   "load angled-dream and all relevant jars. sossity-config is a global ref, but fuckit"
-  (do (doall (map #(pom/add-classpath (val %)) (s/get-all-node-or-edge-attr g :local-jar-path)))
+  (do (doall (map #(pom/add-classpath (val %)) (u/get-all-node-or-edge-attr g :local-jar-path)))
       (pom/add-classpath (:local-angleddream-path sossity-config))))
 
 (defn apply-test-transform [node input]
@@ -142,17 +143,8 @@
   "creates all the pubsubs for a graph, then returns graph"
   "reduces over a reversed depth-first traversal so a parent is building the channels for its children"
   (let [a (reduce #(handle-graph-node %1 %2) g (reverse (post-traverse g)))]
-    (pp/pprint a)
+    #_(pp/pprint a)
     a))
-
-(defn test-cluster [a-graph]
-  "given a config map, test a cluster. returns [graph input-pipes]"
-  (do
-    (swap! this-conf (fn [x] (s/config-md a-graph)))
-    (swap! execute-timestamp (fn [x] (.toString (t/now))))
-    (let [dag (s/create-dag a-graph @this-conf)]
-      (setup-jars dag @this-conf)
-      (compose-cluster dag))))
 
 ;    (map #(put! (val %) {:chans []}) pipes)
 
@@ -161,15 +153,6 @@
    :resource_hash (d/digest "md5" (generate-string message))
    :id            (uuid/v1)
    :resource      message})
-
-(defn file-tester [a-graph]
-  "tests against test files in config.clj"
-  (let [g (test-cluster a-graph)
-        pipes (doall (s/get-all-node-or-edge-attr g :in-chan))
-        in-files (doall (s/get-all-node-or-edge-attr g :test-input))]
-    (doseq [pipe (keys pipes)]
-      (doseq [data (doall (parse-stream (clojure.java.io/reader (get in-files pipe)) true))]
-        (put! (get pipes pipe) (handle-message data))))))
 
 (defn rest-tester [a-graph]
   "creates a 'dev server' with endpoints at [sourcename]/endpoint, not sure what to do with results ")
