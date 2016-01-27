@@ -167,9 +167,9 @@
         input-depends (str pt-prefix "." (attr g input-edge :name))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends])  input-depends])
-        classpath (clojure.string/join (interpose ":" [(get-in conf [:config-file :config :remote-composer-classpath])
-                                                       (if-not (= (attr g node :type) "bq") (str (:remote-libs-path conf) "/" (attr g node :transform-jar)))
-                                                       ])) ;classpath has only one :ty dash!
+        classpath (clojure.string/join (interpose ":" (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
+                                                                     (if-not (= (attr g node :type) "bq") (str (:remote-libs-path conf) "/" (attr g node :transform-jar)))
+                                                                     ]))) ;classpath has only one :ty dash!
         opt-map {:pubsubTopic  input-topic
                  :pipelineName node
                  :errorPipelineName error-topic}
