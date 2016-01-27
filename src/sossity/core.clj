@@ -177,7 +177,7 @@
                    (assoc opt-map :outputTopics (clojure.string/join (interpose "," output-topics)))
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
-        bq-opts (if (is-bigquery? g node) (dissoc (attrs g node) :type))
+        bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
         optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)]
     {node {:name          node
            :classpath     classpath
