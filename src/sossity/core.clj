@@ -307,6 +307,8 @@
     (do
       (if (:view opts) (view-graph (:config opts)))
       (if (:sim opts)
-        (file-tester (read-string (slurp (:config opts))))
+        (do (file-tester (read-string (slurp (:config opts))))
+            (Thread/sleep 10000)
+            )
         (read-and-create (:config opts) (:output opts))))))
 
