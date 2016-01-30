@@ -112,22 +112,22 @@
                                                  :maxPendingLatency "6s"},
                                 :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"}})
 
-(def sm-dataflows {:pipeline1bts {:name "pipeline1bts",
-                                  :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline3.jar",
-                                  :class "com.acacia.angleddream.Main",
-                                  :depends_on ["google_pubsub_topic.pipeline1bts-to-sink1bts"
-                                               "googleappengine_app.stream1bts"
-                                               "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
-                                               "google_pubsub_topic.stream1bts-to-pipeline1bts"],
-                                  :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
-                                                  :pipelineName "pipeline1bts",
-                                                  :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
-                                                  :outputTopics "projects/hx-test/topics/pipeline1bts-to-sink1bts"
-                                                  :stagingLocation "gs://hx-test/staging-eu",
-                                                  :zone "europe-west1-c",
-                                                  :workerMachineType "n1-standard-1",
-                                                  :numWorkers "1",
-                                                  :maxNumWorkers "1"}}})
+(def sm-dataflows {:pipeline1bts (dissoc {:name          "pipeline1bts",
+                                          :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline3.jar",
+                                          :class         "com.acacia.angleddream.Main",
+                                          :depends_on    ["google_pubsub_topic.pipeline1bts-to-sink1bts"
+                                                          "googleappengine_app.stream1bts"
+                                                          "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
+                                                          "google_pubsub_topic.stream1bts-to-pipeline1bts"],
+                                          :optional_args {:pubsubTopic       "projects/hx-test/topics/stream1bts-to-pipeline1bts",
+                                                          :pipelineName      "pipeline1bts",
+                                                          :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
+                                                          :outputTopics      "projects/hx-test/topics/pipeline1bts-to-sink1bts"
+                                                          :stagingLocation   "gs://hx-test/staging-eu",
+                                                          :zone              "europe-west1-c",
+                                                          :workerMachineType "n1-standard-1",
+                                                          :numWorkers        "1",
+                                                          :maxNumWorkers     "1"}} :resource_hashes)})
 
 (deftest test-small-graph
   (let [g (create-parsed-output small-test-gr)]
@@ -389,72 +389,72 @@
                   :sink2bts-error {:name "sink2bts-error", :force_destroy true, :location "EU"},
                   :orionpipe-error {:name "orionpipe-error", :force_destroy true, :location "EU"}})
 
-(def big-dataflows {:pipeline1bts {:name "pipeline1bts",
-                                   :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar",
-                                   :class "com.acacia.angleddream.Main",
-                                   :depends_on ["google_pubsub_topic.pipeline1bts-to-pipeline3bts"
-                                                "google_pubsub_topic.pipeline1bts-to-pipeline2bts"
-                                                "googleappengine_app.stream1bts"
-                                                "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
-                                                "google_pubsub_topic.stream1bts-to-pipeline1bts"],
-                                   :optional_args {:pubsubTopic "projects/hx-test/topics/stream1bts-to-pipeline1bts",
-                                                   :pipelineName "pipeline1bts",
-                                                   :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
-                                                   :outputTopics "projects/hx-test/topics/pipeline1bts-to-pipeline3bts,projects/hx-test/topics/pipeline1bts-to-pipeline2bts"
-                                                   :stagingLocation "gs://hx-test/staging-eu",
-                                                   :zone "europe-west1-c",
-                                                   :workerMachineType "n1-standard-1",
-                                                   :numWorkers "1",
-                                                   :maxNumWorkers "1"}},
-                    :pipeline3bts {:name "pipeline3bts",
-                                   :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline3.jar",
-                                   :class "com.acacia.angleddream.Main",
-                                   :depends_on ["google_pubsub_topic.pipeline3bts-to-sink2bts"
-                                                "googlecli_dataflow.pipeline1bts"
-                                                "google_pubsub_topic.pipeline3bts-to-pipeline3bts-error"
-                                                "google_pubsub_topic.pipeline1bts-to-pipeline3bts"],
-                                   :optional_args {:pubsubTopic "projects/hx-test/topics/pipeline1bts-to-pipeline3bts",
-                                                   :pipelineName "pipeline3bts",
-                                                   :errorPipelineName "projects/hx-test/topics/pipeline3bts-to-pipeline3bts-error",
-                                                   :outputTopics "projects/hx-test/topics/pipeline3bts-to-sink2bts"
-                                                   :stagingLocation "gs://hx-test/staging-eu",
-                                                   :zone "europe-west1-c",
-                                                   :workerMachineType "n1-standard-1",
-                                                   :numWorkers "1",
-                                                   :maxNumWorkers "1"}},
-                    :pipeline2bts {:name "pipeline2bts",
-                                   :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline2.jar",
-                                   :class "com.acacia.angleddream.Main",
-                                   :depends_on ["google_pubsub_topic.pipeline2bts-to-sink3bts"
-                                                "google_pubsub_topic.pipeline2bts-to-sink1bts"
-                                                "googlecli_dataflow.pipeline1bts"
-                                                "google_pubsub_topic.pipeline2bts-to-pipeline2bts-error"
-                                                "google_pubsub_topic.pipeline1bts-to-pipeline2bts"],
-                                   :optional_args {:pubsubTopic "projects/hx-test/topics/pipeline1bts-to-pipeline2bts",
-                                                   :pipelineName "pipeline2bts",
-                                                   :errorPipelineName "projects/hx-test/topics/pipeline2bts-to-pipeline2bts-error",
-                                                   :outputTopics "projects/hx-test/topics/pipeline2bts-to-sink3bts,projects/hx-test/topics/pipeline2bts-to-sink1bts"
-                                                   :stagingLocation "gs://hx-test/staging-eu",
-                                                   :zone "europe-west1-c",
-                                                   :workerMachineType "n1-standard-1",
-                                                   :numWorkers "1",
-                                                   :maxNumWorkers "1"}},
-                    :orionpipe {:name "orionpipe",
-                                :classpath "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar",
-                                :class "com.acacia.angleddream.Main",
-                                :depends_on ["google_pubsub_topic.orionpipe-to-orionsink"
-                                             "googleappengine_app.orion"
-                                             "google_pubsub_topic.orionpipe-to-orionpipe-error"
-                                             "google_pubsub_topic.orion-to-orionpipe"],
-                                :optional_args {:pubsubTopic "projects/hx-test/topics/orion-to-orionpipe",
-                                                :pipelineName "orionpipe",
-                                                :errorPipelineName "projects/hx-test/topics/orionpipe-to-orionpipe-error",
-                                                :outputTopics "projects/hx-test/topics/orionpipe-to-orionsink"
-                                                :stagingLocation "gs://hx-test/staging-eu",
-                                                :zone "europe-west1-c",
-                                                :workerMachineType "n1-standard-1",
-                                                :numWorkers "1",
-                                                :maxNumWorkers "1"}}})
+(def big-dataflows {:pipeline1bts (dissoc {:name          "pipeline1bts",
+                                           :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar",
+                                           :class         "com.acacia.angleddream.Main",
+                                           :depends_on    ["google_pubsub_topic.pipeline1bts-to-pipeline3bts"
+                                                           "google_pubsub_topic.pipeline1bts-to-pipeline2bts"
+                                                           "googleappengine_app.stream1bts"
+                                                           "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
+                                                           "google_pubsub_topic.stream1bts-to-pipeline1bts"],
+                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/stream1bts-to-pipeline1bts",
+                                                           :pipelineName      "pipeline1bts",
+                                                           :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error",
+                                                           :outputTopics      "projects/hx-test/topics/pipeline1bts-to-pipeline3bts,projects/hx-test/topics/pipeline1bts-to-pipeline2bts"
+                                                           :stagingLocation   "gs://hx-test/staging-eu",
+                                                           :zone              "europe-west1-c",
+                                                           :workerMachineType "n1-standard-1",
+                                                           :numWorkers        "1",
+                                                           :maxNumWorkers     "1"}} :resource_hashes),
+                    :pipeline3bts (dissoc {:name          "pipeline3bts",
+                                           :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline3.jar",
+                                           :class         "com.acacia.angleddream.Main",
+                                           :depends_on    ["google_pubsub_topic.pipeline3bts-to-sink2bts"
+                                                           "googlecli_dataflow.pipeline1bts"
+                                                           "google_pubsub_topic.pipeline3bts-to-pipeline3bts-error"
+                                                           "google_pubsub_topic.pipeline1bts-to-pipeline3bts"],
+                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/pipeline1bts-to-pipeline3bts",
+                                                           :pipelineName      "pipeline3bts",
+                                                           :errorPipelineName "projects/hx-test/topics/pipeline3bts-to-pipeline3bts-error",
+                                                           :outputTopics      "projects/hx-test/topics/pipeline3bts-to-sink2bts"
+                                                           :stagingLocation   "gs://hx-test/staging-eu",
+                                                           :zone              "europe-west1-c",
+                                                           :workerMachineType "n1-standard-1",
+                                                           :numWorkers        "1",
+                                                           :maxNumWorkers     "1"}} :resource_hashes),
+                    :pipeline2bts (dissoc {:name          "pipeline2bts",
+                                           :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline2.jar",
+                                           :class         "com.acacia.angleddream.Main",
+                                           :depends_on    ["google_pubsub_topic.pipeline2bts-to-sink3bts"
+                                                           "google_pubsub_topic.pipeline2bts-to-sink1bts"
+                                                           "googlecli_dataflow.pipeline1bts"
+                                                           "google_pubsub_topic.pipeline2bts-to-pipeline2bts-error"
+                                                           "google_pubsub_topic.pipeline1bts-to-pipeline2bts"],
+                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/pipeline1bts-to-pipeline2bts",
+                                                           :pipelineName      "pipeline2bts",
+                                                           :errorPipelineName "projects/hx-test/topics/pipeline2bts-to-pipeline2bts-error",
+                                                           :outputTopics      "projects/hx-test/topics/pipeline2bts-to-sink3bts,projects/hx-test/topics/pipeline2bts-to-sink1bts"
+                                                           :stagingLocation   "gs://hx-test/staging-eu",
+                                                           :zone              "europe-west1-c",
+                                                           :workerMachineType "n1-standard-1",
+                                                           :numWorkers        "1",
+                                                           :maxNumWorkers     "1"}} :resource_hashes),
+                    :orionpipe    (dissoc {:name          "orionpipe",
+                                           :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar",
+                                           :class         "com.acacia.angleddream.Main",
+                                           :depends_on    ["google_pubsub_topic.orionpipe-to-orionsink"
+                                                           "googleappengine_app.orion"
+                                                           "google_pubsub_topic.orionpipe-to-orionpipe-error"
+                                                           "google_pubsub_topic.orion-to-orionpipe"],
+                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/orion-to-orionpipe",
+                                                           :pipelineName      "orionpipe",
+                                                           :errorPipelineName "projects/hx-test/topics/orionpipe-to-orionpipe-error",
+                                                           :outputTopics      "projects/hx-test/topics/orionpipe-to-orionsink"
+                                                           :stagingLocation   "gs://hx-test/staging-eu",
+                                                           :zone              "europe-west1-c",
+                                                           :workerMachineType "n1-standard-1",
+                                                           :numWorkers        "1",
+                                                           :maxNumWorkers     "1"}} :resource_hashes)})
 
 (def big-appengine {:stream1bts {:moduleName     "stream1bts",
                                  :version        "init",

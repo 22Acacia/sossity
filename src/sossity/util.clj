@@ -1,8 +1,10 @@
 (ns sossity.util
-  (:require    [loom.graph :refer :all]
-               [loom.alg :refer :all]
-               [loom.io :refer :all]
-               [loom.attr :refer :all]))
+  (:require [loom.graph :refer :all]
+            [loom.alg :refer :all]
+            [loom.io :refer :all]
+            [loom.attr :refer :all]
+            [pandect.algo.md5 :refer :all])
+  (:import (java.security MessageDigest)))
 
 (defn filter-node-attrs
   ([g keyword value]
@@ -33,3 +35,10 @@
              (if (some? a)
                (assoc %1 %2 a)
                %1)) {} (nodes g)))
+
+(defn hash-jar [path]
+  "create a hash of a jar's contents so we can know if it's updated and re-deploy"
+  (try
+    (md5-file path)
+    (catch Exception e
+      #_(println e))))
