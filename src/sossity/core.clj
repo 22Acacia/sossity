@@ -123,10 +123,11 @@
 (defn create-sink-container [g node conf]
   (let [item_name (clojure.string/lower-case (str node "-sink"))
         proj_name (:project conf)
+        resource_version (get-in conf [:config-file :config :sink-resource-version])
         sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
         bucket_name (attr g node :bucket)
         zone (:region conf)
-        output {item_name {:name item_name :docker_image sink-docker-img :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name       sub_name :bucket_name bucket_name}}}]
+        output {item_name {:name item_name :resource_version resource_version :docker_image sink-docker-img :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name       sub_name :bucket_name bucket_name}}}]
     output))
 
 (defn create-sub [g edge]
@@ -148,8 +149,8 @@
 ;;add depeendencies
 (defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
-  [node g]
-  {node {:moduleName node :version "init" :gstorageKey gstoragekey :gstorageBucket gstoragebucket :scaling
+  [node g conf]
+  {node {:moduleName node :version "init" :gstorageKey gstoragekey :resource_version (get-in conf [:config-file :config :source-resource-version]) :gstorageBucket gstoragebucket :scaling
          {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName  (attr g (first (out-edges g node)) :topic)}})
 
@@ -185,7 +186,7 @@
              :depends_on    depends-on
              :optional_args optional-args}]
 
-    {node (if-not (empty? resource-hashes) (assoc out :resource-hashes resource-hashes) out)}))          ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
+    {node (if-not (empty? resource-hashes) (assoc out :resource_hashes resource-hashes) out)}))          ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
 
 
 (defn create-dataflow-jobs [g conf]
@@ -198,8 +199,8 @@
 (defn output-pubsub [g]
   (apply merge (map #(assoc-in {} [(attr g % :name) :name] (attr g % :name)) (edges g))))
 
-(defn create-sources [g]
-  (apply merge (map #(create-appengine-module % g)
+(defn create-sources [g conf]
+  (apply merge (map #(create-appengine-module % g conf)
                     (u/filter-node-attrs g :exec :source))))
 
 (defn output-sinks [g conf]
@@ -258,9 +259,8 @@
         buckets {:google_storage_bucket (output-buckets g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
-        sources {:googleappengine_app (create-sources g)}
-        sinks  (output-sinks g conf)
-        controllers {:googlecli_container_replica_controller sinks}
+        sources {:googleappengine_app (create-sources g conf)}
+        controllers {:googlecli_container_replica_controller (output-sinks g conf)}
         combined {:provider (merge goo-provider cli-provider app-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
