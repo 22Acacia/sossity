@@ -29,7 +29,6 @@
              {:transform-jar  "visitorpipe.jar"
               :local-jar-path "/home/bradford/proj/pipeline-examples/visitorpipe/target/visitorpipe-bundled-0.1-ALPHA.jar"
               :composer-class "com.acacia.visitorpipe.VisitorPipeComposer"}
-
              "pipelineG"
              {:transform-jar  "visitorpipe.jar"
               :local-jar-path "/home/bradford/proj/pipeline-examples/visitorpipe/target/visitorpipe-bundled-0.1-ALPHA.jar"

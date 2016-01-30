@@ -166,24 +166,26 @@
         output-depends (map #(str pt-prefix "." %) (map #(attr g % :name) output-edges))
         input-depends (str pt-prefix "." (attr g input-edge :name))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
-        depends-on (flatten [(flatten [output-depends predecessor-depends error-depends])  input-depends])
-        classpath (clojure.string/join (interpose ":" (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
-                                                                     (if-not (= (attr g node :type) "bq") (str (:remote-libs-path conf) "/" (attr g node :transform-jar)))
-                                                                     ]))) ;classpath has only one :ty dash!
-        opt-map {:pubsubTopic  input-topic
-                 :pipelineName node
+        depends-on (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends])
+        classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
+                                 (str (:remote-libs-path conf) "/" (attr g node :transform-jar))])
+        resource-hashes (filter some? (map #(u/hash-jar %) classpath))
+        opt-map {:pubsubTopic       input-topic
+                 :pipelineName      node
                  :errorPipelineName error-topic}
         opt-mapb (if-not (= (attr g node :type) "bq")
                    (assoc opt-map :outputTopics (clojure.string/join (interpose "," output-topics)))
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
-        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)]
-    {node {:name          node
-           :classpath     classpath
-           :class         class
-           :depends_on    depends-on
-           :optional_args optional-args}}));NOTE: name needs to only have [- a-z 0-9] and must start with letter
+        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)
+        out {:name          node
+             :classpath     (clojure.string/join (interpose ":" classpath))
+             :class         class
+             :depends_on    depends-on
+             :optional_args optional-args}]
+
+    {node (if-not (empty? resource-hashes) (assoc out :resource-hashes resource-hashes) out)}))          ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
 
 
 (defn create-dataflow-jobs [g conf]
@@ -309,7 +311,6 @@
       (if (:view opts) (view-graph (:config opts)))
       (if (:sim opts)
         (do (file-tester (read-string (slurp (:config opts))))
-            (Thread/sleep 10000)
-            )
+            (Thread/sleep 10000))
         (read-and-create (:config opts) (:output opts))))))
 

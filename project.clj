@@ -17,8 +17,8 @@
                  [com.cemerick/pomegranate "0.3.0"]
                  [org.clojure/core.async "0.2.374"]
                  [danlentz/clj-uuid "0.1.6"]
+                 [pandect "0.5.4"]
                  [digest "1.4.4"]
-
                  [clj-time "0.11.0"]]
 
   :plugins [[lein-cljfmt "0.3.0"]]
