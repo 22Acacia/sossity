@@ -272,13 +272,27 @@
   (spit file (create-terraform-json a-graph) :create true :append false :truncate true))                          ;NOTE -- need to remove first [ and last ]
 
 
+(defn merge-graph-items [g1 g2]
+  (-> g1
+      (update :pipelines #(merge % (:pipelines g2)))
+      (update :edges #(apply merge % (:edges g2)))
+      (update :sources #(merge % (:sources g2)))
+      (update :sinks #(merge % (:sinks g2)))))
+
+{:pipelines {"stream1bts" {:type "kub"} "orion" {:type "kub"}}} {:pipelines {"stream2bts" {:type "kub"} "orion2" {:type "kub"}}}
+
+(defn read-graphs [input-files]
+  "returns a graph of all the subgraph files, merged"
+  (let [inputs (doall (map (comp read-string slurp) (clojure.string/split input-files #",")))]
+    (reduce #(merge-graph-items %1 %2) inputs)))
+
 (defn read-and-create
   [input output]
-  (output-terraform-file (read-string (slurp input)) output))
+  (output-terraform-file (read-graphs input) output))
 
 (defn view-graph
   [input]
-  (loom.io/view (create-dag (read-string (slurp input)) (config-md (read-string (slurp input))))))
+  (loom.io/view (create-dag (read-graphs input) (config-md (read-string (slurp input))))))
 
 (defn test-cluster [a-graph]
   "given a config map, test a cluster. returns [graph input-pipes]"
@@ -299,7 +313,7 @@
         (put! (get pipes pipe) (sim/handle-message data))))))
 
 (def cli-options
-  [["-c" "--config CONFIG" "path to .clj config file for pipeline"]
+  [["-c" "--config CONFIG" "comma-separated paths to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
    ["-s" "--sim" "simulate cluster, running input scripts and producing file output"]])
@@ -310,7 +324,7 @@
     (do
       (if (:view opts) (view-graph (:config opts)))
       (if (:sim opts)
-        (do (file-tester (read-string (slurp (:config opts))))
+        (do (file-tester (read-graphs (:config opts)))
             (Thread/sleep 10000))
         (read-and-create (:config opts) (:output opts))))))
 
