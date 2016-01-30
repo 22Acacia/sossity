@@ -140,10 +140,6 @@
   (if (and (= "gcs" (attr g node :type)) (attr g node :bucket))
     {(attr g node :bucket) {:name (attr g node :bucket) :force_destroy default-force-bucket-destroy :location default-bucket-location}}))
 
-;NOTE: need to create some kind of multiplexer job to make it so multiple jobs can read from multiple sources? ugh
-
-
-;;add depeendencies
 (defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
@@ -165,8 +161,9 @@
         input-depends (str pt-prefix "." (attr g input-edge :name))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends])
+        class-jars (if-let [jar (attr g node :transform-jar)] (str (:remote-libs-path conf) "/" jar))
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
-                                 (str (:remote-libs-path conf) "/" (attr g node :transform-jar))])
+                                 (or class-jars)])
         resource-hashes (filter some? (map #(u/hash-jar %) classpath))
         opt-map {:pubsubTopic       input-topic
                  :pipelineName      node
@@ -186,6 +183,18 @@
     {node (if-not (empty? resource-hashes) (assoc out :resource_hashes resource-hashes) out)}))          ;NOTE: name needs to only have [- a-z 0-9] and must start with letter
 
 
+(defn create-bq-dataset [g node]
+  (let [ds (attr g node :bigQueryDataset)]
+    {ds {:datasetId ds}}))
+
+(defn create-bq-table [g node]
+  (let [table (attr g node :bigQueryTable)
+        dataset (str "${google_bigquery_dataset." (attr g node :bigQueryDataset) ".datasetId}")]
+    {table {:tableId    table
+            :depends_on [dataset]
+            :datasetId  dataset
+            :schemaFile (attr g node :bigQuerySchema)}}))
+
 (defn create-dataflow-jobs [g conf]
   (apply merge (map #(create-dataflow-job g % conf) (u/filter-node-attrs g :exec :pipeline))))
 
@@ -199,6 +208,14 @@
 (defn create-sources [g conf]
   (apply merge (map #(create-appengine-module % g conf)
                     (u/filter-node-attrs g :exec :source))))
+
+(defn output-bq-datasets [g]
+  (apply merge (map #(create-bq-dataset g %)
+                    (u/filter-node-attrs g :type "bq"))))
+
+(defn output-bq-tables [g]
+  (apply merge (map #(create-bq-table g %)
+                    (u/filter-node-attrs g :type "bq"))))
 
 (defn output-sinks [g conf]
   (let [sinks (u/filter-node-attrs g :exec :sink)
@@ -230,17 +247,18 @@
 
 (defn add-error-sinks
   "Add error sinks to every non-source item on the graph. Sources don't have errors because they should return a 4xx or 5xx when something gone wrong"
-  [g conf]
+  [g]
   (let [connected (filter #(> (in-degree g %1) 0) (nodes g))]
     (reduce #(add-error-sink-node %1 %2) g connected)))
 
 (defn create-dag
+  "the most important fn-- created directed graph, use this to feed all other fns"
   [a-graph conf]
   (let [g (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))]
     ;decorate nodes
     (-> g
         (anns a-graph)
-        (add-error-sinks conf)
+        add-error-sinks
         (name-edges conf)))                                    ;return the graph?
 )
 
@@ -254,12 +272,14 @@
         pubsubs {:google_pubsub_topic (output-pubsub g)}
         subscriptions {:google_pubsub_subscription (output-subs g)}
         buckets {:google_storage_bucket (output-buckets g)}
+        bigquery-datasets {:google_bigquery_dataset (output-bq-datasets g)}
+        bigquery-tables {:google_bigquey_table (output-bq-tables g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (create-sources g conf)}
         controllers {:googlecli_container_replica_controller (output-sinks g conf)}
         combined {:provider (merge goo-provider cli-provider app-provider)
-                  :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows)}
+                  :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
