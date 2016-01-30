@@ -15,7 +15,6 @@
     :refer [>! <! >!! <!! go chan buffer close! thread alts! alts!! timeout pub sub unsub unsub-all go-loop put!]])
   (:gen-class))
 
-(def crc-prefix "googlecli_container_replica_controller")
 (def app-prefix "googleappengine_app")
 (def df-prefix "googlecli_dataflow")
 (def pt-prefix "google_pubsub_topic")
@@ -25,8 +24,6 @@
 (def sink-retries 3)
 (def sink-buffer-size 1000)
 (def sink-container "${google_container_cluster.hx_fstack_cluster.name}")
-(def source-image "gcr.io/hx-test/source-master")
-(def source-port "8080")
 (def default-bucket-location "EU")
 (def default-force-bucket-destroy true)
 (def sub-suffix "_sub")
