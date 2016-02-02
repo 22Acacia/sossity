@@ -79,7 +79,7 @@
 
 (def sm-replica-controllers {:sink1bts-sink           {:name           "sink1bts-sink"
                                                        :docker_image   "gcr.io/hx-test/store-sink"
-                                                       :resource_version "1"
+                                                       :resource_version ["1"]
                                                        :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                                        :zone           "europe-west1-c"
                                                        :env_args       {:num_retries 3
@@ -89,7 +89,7 @@
                                                                         :bucket_name "sink1-bts-test"}}
                              :pipeline1bts-error-sink {:name           "pipeline1bts-error-sink"
                                                        :docker_image   "gcr.io/hx-test/store-sink"
-                                                       :resource_version "1"
+                                                       :resource_version ["1"]
                                                        :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                                        :zone           "europe-west1-c"
                                                        :env_args       {:num_retries 3
@@ -99,7 +99,7 @@
                                                                         :bucket_name "pipeline1bts-error"}}
                              :sink1bts-error-sink     {:name           "sink1bts-error-sink"
                                                        :docker_image   "gcr.io/hx-test/store-sink"
-                                                       :resource_version "1"
+                                                       :resource_version ["1"]
                                                        :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                                        :zone           "europe-west1-c"
                                                        :env_args       {:num_retries 3
@@ -117,7 +117,7 @@
 (def sm-appengine {:stream1bts {:moduleName     "stream1bts"
                                 :version        "init"
                                 :gstorageKey    "hxtest-1.0-SNAPSHOT"
-                                :resource_version "1"
+                                :resource_version ["1"]
                                 :gstorageBucket "build-artifacts-public-eu"
                                 :scaling        {:minIdleInstances  1
                                                  :maxIdleInstances  1
@@ -280,7 +280,7 @@
                                                     :docker_image "gcr.io/hx-test/store-sink"
                                                     :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                                     :zone "europe-west1-c"
-                                                    :resource_version "1"
+                                                    :resource_version ["1"]
                                                     :env_args {:num_retries 3
                                                                :batch_size 1000
                                                                :proj_name "hx-test"
@@ -290,7 +290,7 @@
                                                     :docker_image "gcr.io/hx-test/store-sink"
                                                     :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                                     :zone "europe-west1-c"
-                                                    :resource_version "1"
+                                                    :resource_version ["1"]
                                                     :env_args {:num_retries 3
                                                                :batch_size 1000
                                                                :proj_name "hx-test"
@@ -300,7 +300,7 @@
                                               :docker_image "gcr.io/hx-test/store-sink"
                                               :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                               :zone "europe-west1-c"
-                                              :resource_version "1"
+                                              :resource_version ["1"]
                                               :env_args {:num_retries 3
                                                          :batch_size 1000
                                                          :proj_name "hx-test"
@@ -310,7 +310,7 @@
                                               :docker_image "gcr.io/hx-test/store-sink"
                                               :container_name "${google_container_cluster.hx_fstack_cluster.name}"
                                               :zone "europe-west1-c"
-                                              :resource_version "1"
+                                              :resource_version ["1"]
                                               :env_args {:num_retries 3
                                                          :batch_size 1000
                                                          :proj_name "hx-test"
@@ -319,7 +319,7 @@
                               :pipeline1bts-error-sink {:name "pipeline1bts-error-sink"
                                                         :docker_image "gcr.io/hx-test/store-sink"
                                                         :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                                        :resource_version "1"
+                                                        :resource_version ["1"]
                                                         :zone "europe-west1-c"
                                                         :env_args {:num_retries 3
                                                                    :batch_size 1000
@@ -329,7 +329,7 @@
                               :orionpipe-error-sink {:name "orionpipe-error-sink"
                                                      :docker_image "gcr.io/hx-test/store-sink"
                                                      :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                                     :resource_version "1"
+                                                     :resource_version ["1"]
                                                      :zone "europe-west1-c"
                                                      :env_args {:num_retries 3
                                                                 :batch_size 1000
@@ -339,7 +339,7 @@
                               :orionsink-error-sink {:name "orionsink-error-sink"
                                                      :docker_image "gcr.io/hx-test/store-sink"
                                                      :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                                     :resource_version "1"
+                                                     :resource_version ["1"]
                                                      :zone "europe-west1-c"
                                                      :env_args {:num_retries 3
                                                                 :batch_size 1000
@@ -349,7 +349,7 @@
                               :pipeline3bts-error-sink {:name "pipeline3bts-error-sink"
                                                         :docker_image "gcr.io/hx-test/store-sink"
                                                         :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                                        :resource_version "1"
+                                                        :resource_version ["1"]
                                                         :zone "europe-west1-c"
                                                         :env_args {:num_retries 3
                                                                    :batch_size 1000
@@ -359,7 +359,7 @@
                               :sink2bts-error-sink {:name "sink2bts-error-sink"
                                                     :docker_image "gcr.io/hx-test/store-sink"
                                                     :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                                    :resource_version "1"
+                                                    :resource_version ["1"]
                                                     :zone "europe-west1-c"
                                                     :env_args {:num_retries 3
                                                                :batch_size 1000
@@ -369,7 +369,7 @@
                               :orionsink-sink {:name "orionsink-sink"
                                                :docker_image "gcr.io/hx-test/store-sink"
                                                :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                               :resource_version "1"
+                                               :resource_version ["1"]
                                                :zone "europe-west1-c"
                                                :env_args {:num_retries 3
                                                           :batch_size 1000
@@ -379,7 +379,7 @@
                               :pipeline2bts-error-sink {:name "pipeline2bts-error-sink"
                                                         :docker_image "gcr.io/hx-test/store-sink"
                                                         :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                                        :resource_version "1"
+                                                        :resource_version ["1"]
                                                         :zone "europe-west1-c"
                                                         :env_args {:num_retries 3
                                                                    :batch_size 1000
@@ -389,7 +389,7 @@
                               :sink3bts-sink {:name "sink3bts-sink"
                                               :docker_image "gcr.io/hx-test/store-sink"
                                               :container_name "${google_container_cluster.hx_fstack_cluster.name}"
-                                              :resource_version "1"
+                                              :resource_version ["1"]
                                               :zone "europe-west1-c"
                                               :env_args {:num_retries 3
                                                          :batch_size 1000
@@ -486,7 +486,7 @@
 (def big-appengine {:stream1bts {:moduleName     "stream1bts"
                                  :version        "init"
                                  :gstorageKey    "hxtest-1.0-SNAPSHOT"
-                                 :resource_version "1"
+                                 :resource_version ["1"]
                                  :gstorageBucket "build-artifacts-public-eu"
                                  :scaling        {:minIdleInstances  1
                                                   :maxIdleInstances  1
@@ -496,7 +496,7 @@
                     :orion      {:moduleName     "orion"
                                  :version        "init"
                                  :gstorageKey    "hxtest-1.0-SNAPSHOT"
-                                 :resource_version "1"
+                                 :resource_version ["1"]
                                  :gstorageBucket "build-artifacts-public-eu"
                                  :scaling        {:minIdleInstances  1
                                                   :maxIdleInstances  1
@@ -567,7 +567,7 @@
 (def bq-replica-controllers (-> big-replica-controllers
                                 (assoc :orionbq-error-sink
                                        {:name "orionbq-error-sink",
-                                        :resource_version "1", :docker_image "gcr.io/hx-test/store-sink",
+                                        :resource_version ["1"], :docker_image "gcr.io/hx-test/store-sink",
                                         :container_name "${google_container_cluster.hx_fstack_cluster.name}",
                                         :zone "europe-west1-c", :env_args {:num_retries 3, :batch_size 1000,
                                                                            :proj_name "hx-test", :sub_name "orionbq-to-orionbq-error_sub",

@@ -124,7 +124,7 @@
         sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
         bucket_name (attr g node :bucket)
         zone (:region conf)
-        output {item_name {:name item_name :resource_version resource_version :docker_image sink-docker-img :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name       sub_name :bucket_name bucket_name}}}]
+        output {item_name {:name item_name :resource_version [resource_version] :docker_image sink-docker-img :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name}}}]
     output))
 
 (defn create-sub [g edge]
@@ -143,8 +143,8 @@
 (defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
-  {node {:moduleName node :version "init" :gstorageKey gstoragekey :resource_version (get-in conf [:config-file :config :source-resource-version]) :gstorageBucket gstoragebucket :scaling
-         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+  {node {:moduleName node :version "init" :gstorageKey gstoragekey :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
+                     {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName  (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
@@ -268,6 +268,7 @@
         g (create-dag a-graph conf)
         goo-provider {:google (output-provider a-graph)}
         cli-provider {:googlecli (output-provider a-graph)}
+        bq-provider {:googlebigquery (output-provider a-graph)}
         app-provider {:googleappengine (output-provider a-graph)}
         pubsubs {:google_pubsub_topic (output-pubsub g)}
         subscriptions {:google_pubsub_subscription (output-subs g)}
@@ -278,7 +279,7 @@
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (create-sources g conf)}
         controllers {:googlecli_container_replica_controller (output-sinks g conf)}
-        combined {:provider (merge goo-provider cli-provider app-provider)
+        combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         out (clojure.string/trim (generate-string combined {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
