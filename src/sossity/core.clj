@@ -191,7 +191,7 @@
   (let [table (attr g node :bigQueryTable)
         dataset (str "${google_bigquery_dataset." (attr g node :bigQueryDataset) "}")]
     {table {:tableId    table
-            :depends_on [(str "${google_bigquery_dataset." (attr g node :bigQueryDataset) "}")]
+            :depends_on [(str "google_bigquery_dataset." (attr g node :bigQueryDataset))]
             :datasetId  (str "${google_bigquery_dataset." (attr g node :bigQueryDataset) ".datasetId}")
             :schemaFile (attr g node :bigQuerySchema)}}))
 

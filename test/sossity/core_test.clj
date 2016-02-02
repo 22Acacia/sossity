@@ -560,7 +560,7 @@
 (def bq-datasets {:hx-test {:datasetId "hx-test"}})
 
 (def bq-tables {:hx-test {:tableId    "hx-test" :datasetId "${google_bigquery_dataset.hx-test.datasetId}"
-                          :schemaFile "schema.json" :depends_on ["${google_bigquery_dataset.hx-test}"]}})
+                          :schemaFile "schema.json" :depends_on ["google_bigquery_dataset.hx-test"]}})
 
 (def bq-buckets (-> big-bucket (assoc :orionbq-error {:name "orionbq-error", :force_destroy true, :location "EU"})))
 
