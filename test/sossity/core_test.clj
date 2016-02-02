@@ -1,11 +1,18 @@
 (ns sossity.core-test
   (:require [sossity.core :refer :all]
             [clojure.test :refer :all]
-            [cheshire.core :refer :all]))
+            [cheshire.core :refer :all]
+            [clojure.data :refer [diff]]))
 
 (defn create-parsed-output [g]
   (cheshire.core/decode (create-terraform-json
                          g) true))
+
+(defn is-nil-diff? [l r]
+  "tests if the diff between l and r is nil"
+  (let  [d (diff l r)]
+    (is (= [nil nil l] d) (str "in-l-not-r: " (first d) "\n"
+                               "in-r-not-l: " (second d)))))
 
 (def small-test-gr
   {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
@@ -518,7 +525,7 @@
 
 (def bq-graph
   (-> big-test-gr
-      (assoc-in [:sinks "orionbq"] {:type "bq" :bigQueryDataset "hx-test" :bigQueryTable "hx-test"})
+      (assoc-in [:sinks "orionbq"] {:type "bq" :bigQueryDataset "hx-test" :bigQueryTable "hx-test" :bigQuerySchema "schema.json"})
       (assoc-in [:edges]  [{:origin "stream1bts" :targets ["pipeline1bts"]}
                            {:origin "pipeline1bts" :targets ["pipeline2bts" "pipeline3bts"]}
                            {:origin "pipeline2bts" :targets ["sink1bts"  "sink3bts"]}
@@ -530,40 +537,64 @@
                   :classpath "/usr/local/lib/angleddream-bundled.jar"
                   :class "com.acacia.angleddream.Main"
                   :depends_on ["googlecli_dataflow.orionpipe"
-                               "google_pubsub_topic.orionbq_err"
-                               "google_pubsub_topic.orionbq_in"]
+                               "google_pubsub_topic.orionbq-to-orionbq-error"
+                               "google_pubsub_topic.orionpipe-to-orionbq"]
                   :optional_args {:stagingLocation "gs://hx-test/staging-eu"
                                   :zone "europe-west1-c"
                                   :workerMachineType "n1-standard-1"
                                   :bigQueryTable "hx-test"
-                                  :errorPipelineName "projects/hx-test/topics/orionbq_err"
+                                  :errorPipelineName "projects/hx-test/topics/orionbq-to-orionbq-error"
                                   :bigQueryDataset "hx-test"
-                                  :pubsubTopic "projects/hx-test/topics/orionbq_in"
+                                  :bigQuerySchema "schema.json"
+                                  :pubsubTopic "projects/hx-test/topics/orionpipe-to-orionbq"
                                   :numWorkers "1"
                                   :pipelineName "orionbq"
                                   :maxNumWorkers "1"}})
 
 (def bq-pubsub-tops (->
                      big-pubsub-tops
-                     (assoc :orionbq_err {:name "orionbq_err"})
-                     (assoc :orionbq_in {:name "orionbq_in"})))
+                     (assoc :orionpipe-to-orionpipe-error {:name "orionpipe-to-orionpipe-error"})
+                     (assoc :orionbq-to-orionbq-error {:name "orionbq-to-orionbq-error"})
+                     (assoc :orionpipe-to-orionbq {:name "orionpipe-to-orionbq"})))
+
+(def bq-datasets {:hx-test {:datasetId "hx-test"}})
+
+(def bq-tables {:hx-test {:tableId    "hx-test" :datasetId "${google_bigquery_dataset.hx-test.datasetId}"
+                          :schemaFile "schema.json" :depends_on ["${google_bigquery_dataset.hx-test.datasetId}"]}})
+
+(def bq-buckets (-> big-bucket (assoc :orionbq-error {:name "orionbq-error", :force_destroy true, :location "EU"})))
+
+(def bq-replica-controllers (-> big-replica-controllers
+                                (assoc :orionbq-error-sink
+                                       {:name "orionbq-error-sink",
+                                        :resource_version "1", :docker_image "gcr.io/hx-test/store-sink",
+                                        :container_name "${google_container_cluster.hx_fstack_cluster.name}",
+                                        :zone "europe-west1-c", :env_args {:num_retries 3, :batch_size 1000,
+                                                                           :proj_name "hx-test", :sub_name "orionbq-to-orionbq-error_sub",
+                                                                           :bucket_name "orionbq-error"}})))
+
+(def bq-subs (-> big-pubsub-subs (assoc :orionbq-to-orionbq-error_sub {:name "orionbq-to-orionbq-error_sub", :topic "orionbq-to-orionbq-error", :depends_on ["google_pubsub_topic.orionbq-to-orionbq-error"]})))
 
 ;NOTE -- need to have some kind of 'refresh' workflow since we may be defing/undefing in a work session
 
 (deftest add-bq
-  #_(let [g (create-parsed-output bq-graph)]
-      (testing "Test new dataflow for bigquery"
-        (is (= bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq])))
-        (testing "Test the minimum viable graph provider"
-          (is (= big-provider (:provider g))))
-        (testing "Pubsub topics"
-          (is (= bq-pubsub-tops (get-in g [:resource :google_pubsub_topic]))))
-        (testing "Pusub subs"
-          (is (= big-pubsub-subs (get-in g [:resource :google_pubsub_subscription]))))
-        (testing "container cluster"
-          (is (= big-container-cluster (get-in g [:resource :google_container_cluster]))))
-        (testing "Replica controllers"
-          (is (= big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller]))))
-        (testing "Storage buckets"
-          (is (= big-bucket (get-in g [:resource :google_storage_bucket])))))))
+  (let [g (create-parsed-output bq-graph)]
+    (testing "Test new dataflow for bigquery"
+      (is-nil-diff? bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq])))
+    (testing "Test the minimum viable graph provider"
+      (is-nil-diff? big-provider (:provider g)))
+    (testing "Pubsub topics"
+      (is-nil-diff? bq-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
+    (testing "Pusub subs"
+      (is-nil-diff? bq-subs (get-in g [:resource :google_pubsub_subscription])))
+    (testing "container cluster"
+      (is-nil-diff? big-container-cluster (get-in g [:resource :google_container_cluster])))
+    (testing "Replica controllers"
+      (is-nil-diff? bq-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
+    (testing "Datasets"
+      (is-nil-diff? bq-datasets (get-in g [:resource :google_bigquery_dataset])))
+    (testing "Tables"
+      (is-nil-diff? bq-tables (get-in g [:resource :google_bigquey_table])))
+    (testing "Storage buckets"
+      (is-nil-diff? bq-buckets (get-in g [:resource :google_storage_bucket])))))
 
