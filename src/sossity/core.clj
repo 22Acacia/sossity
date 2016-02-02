@@ -189,10 +189,10 @@
 
 (defn create-bq-table [g node]
   (let [table (attr g node :bigQueryTable)
-        dataset (str "${google_bigquery_dataset." (attr g node :bigQueryDataset) ".datasetId}")]
+        dataset (str "${google_bigquery_dataset." (attr g node :bigQueryDataset) "}")]
     {table {:tableId    table
-            :depends_on [dataset]
-            :datasetId  dataset
+            :depends_on [(str "${google_bigquery_dataset." (attr g node :bigQueryDataset) "}")]
+            :datasetId  (str "${google_bigquery_dataset." (attr g node :bigQueryDataset) ".datasetId}")
             :schemaFile (attr g node :bigQuerySchema)}}))
 
 (defn create-dataflow-jobs [g conf]
@@ -273,7 +273,7 @@
         subscriptions {:google_pubsub_subscription (output-subs g)}
         buckets {:google_storage_bucket (output-buckets g)}
         bigquery-datasets {:google_bigquery_dataset (output-bq-datasets g)}
-        bigquery-tables {:google_bigquey_table (output-bq-tables g)}
+        bigquery-tables {:google_bigquery_table (output-bq-tables g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (create-sources g conf)}
