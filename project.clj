@@ -8,6 +8,7 @@
               :url "http://www.eclipse.org/legal/epl-v10.html"}
     :dependencies [[org.clojure/clojure "1.7.0"]
                    [aysylu/loom "0.5.4"]
+
                    [cheshire/cheshire "5.5.0"]
                    [traversy "0.4.0"]
                    [org.clojure/tools.cli "0.3.3"]
@@ -26,7 +27,10 @@
                    [clj-time "0.11.0"]]
 
     :plugins [[lein-cljfmt "0.3.0"]
-              [lein-maven-s3-wagon "0.2.5"]]
+              [lein-maven-s3-wagon "0.2.5"]
+              ]
+
+
     :deploy-repositories [["com.22acacia" {:url      "s3://com.22acacia/releases/"
                                            :username ~s3_username
                                            :password ~s3_password}]]

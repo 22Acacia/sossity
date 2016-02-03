@@ -57,7 +57,7 @@
 (defn setup-jars [g sossity-config]
   "load angled-dream and all relevant jars. sossity-config is a global ref, but fuckit"
   (do (doall (map #(pom/add-classpath (val %)) (u/get-all-node-or-edge-attr g :local-jar-path)))
-      (pom/add-classpath (:local-angleddream-path sossity-config))))
+      #_(pom/add-classpath (:local-angleddream-path sossity-config))))
 
 (defn apply-test-transform [node input]
   (assoc input :chans (conj (:chans input) node)))
