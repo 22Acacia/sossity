@@ -24,7 +24,7 @@
 
   :plugins [[lein-cljfmt "0.3.0"]]
   :deploy-repositories [["com.22acacia" {:url "s3://com.22acacia/releases"
-                                         :username (System/getemv "AWS_ACCESS_KEY_ID")
+                                         :username (System/getenv "AWS_ACCESS_KEY_ID")
                                          :password (System/getenv "AWS_SECRET_KEY") }]]
   :main sossity.core
   :aot [sossity.core])
