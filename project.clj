@@ -26,8 +26,8 @@
             [lein-maven-s3-wagon "0.2.5"]
             ]
   :deploy-repositories [["releases" {:url      "s3://com.22acacia/releases"
-                                         :username :env/AWS_ACCESS_KEY_ID
-                                         :password :env/AWS_SECRET_KEY}]]
+                                     :username (System/getenv "AWS_ACCESS_KEY_ID")
+                                     :password (System/getenv "AWS_SECRET_KEY")}]]
   :main sossity.core
   :aot [sossity.core])
 
