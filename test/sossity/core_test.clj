@@ -567,8 +567,8 @@
 
 (def bq-datasets {:hx-test {:datasetId "hx-test"}})
 
-(def bq-tables {:hx-test {:tableId    "hx-test" :datasetId "${google_bigquery_dataset.hx-test.datasetId}"
-                          :schemaFile "schema.json" :depends_on ["google_bigquery_dataset.hx-test"]}})
+(def bq-tables {:hx-test {:tableId    "hx-test" :datasetId "${googlebigquery_dataset.hx-test.datasetId}"
+                          :schemaFile "schema.json" :depends_on ["googlebigquery_dataset.hx-test"]}})
 
 (def bq-buckets (-> big-bucket (assoc :orionbq-error {:name "orionbq-error", :force_destroy true, :location "EU"})))
 
@@ -600,9 +600,9 @@
     (testing "Replica controllers"
       (is-nil-diff? bq-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
     (testing "Datasets"
-      (is-nil-diff? bq-datasets (get-in g [:resource :google_bigquery_dataset])))
+      (is-nil-diff? bq-datasets (get-in g [:resource :googlebigquery_dataset])))
     (testing "Tables"
-      (is-nil-diff? bq-tables (get-in g [:resource :google_bigquery_table])))
+      (is-nil-diff? bq-tables (get-in g [:resource :googlebigquery_table])))
     (testing "Storage buckets"
       (is-nil-diff? bq-buckets (get-in g [:resource :google_storage_bucket])))))
 
