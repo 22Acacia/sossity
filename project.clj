@@ -1,3 +1,8 @@
+(let [_ (prn (System/getenv))
+      s3_username (System/getenv "AWS_ACCESS_KEY_ID")
+      s3_password (System/getenv "AWS_SECRET_KEY")]
+
+
 (defproject sossity "0.1.0-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
@@ -25,9 +30,9 @@
   :plugins [[lein-cljfmt "0.3.0"]
             [lein-maven-s3-wagon "0.2.5"]
             ]
-  :deploy-repositories [["com.22acacia" {:url      "s3://com.22acacia/releases"
-                                     :username (System/getenv "AWS_ACCESS_KEY_ID")
-                                     :password (System/getenv "AWS_SECRET_KEY")}]]
+  :deploy-repositories [["com.22acacia" {:url      "s3://com.22acacia/releases/"
+                                         :username ~s3_username
+                                         :password ~s3_password}]]
   :main sossity.core
-  :aot [sossity.core])
+  :aot [sossity.core]))
 
