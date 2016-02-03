@@ -23,7 +23,7 @@
                  [clj-time "0.11.0"]]
 
   :plugins [[lein-cljfmt "0.3.0"]]
-  :deploy-repositories [["com.22acacia" {:url      "s3://com.22acacia/releases"
+  :deploy-repositories [["releases" {:url      "s3://com.22acacia/releases"
                                          :username :env/AWS_ACCESS_KEY_ID
                                          :password :env/AWS_SECRET_KEY}]]
   :main sossity.core
