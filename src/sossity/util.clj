@@ -3,7 +3,8 @@
             [loom.alg :refer :all]
             [loom.io :refer :all]
             [loom.attr :refer :all]
-            [pandect.algo.md5 :refer :all])
+            [pandect.algo.md5 :refer :all]
+            [clojure.java.io :as f])
   (:import (java.security MessageDigest)))
 
 (defn filter-node-attrs
@@ -30,11 +31,16 @@
   ([g keyword value edges]
    (filter (fn [x] (= value (attr g x keyword))) edges)))
 
-(defn get-all-node-or-edge-attr [g k]
-  (reduce #(let [a (attr g %2 k)]
-             (if (some? a)
-               (assoc %1 %2 a)
-               %1)) {} (nodes g)))
+(defn get-all-node-or-edge-attr ([g k]
+                                 (reduce #(let [a (attr g %2 k)]
+                                            (if (some? a)
+                                              (assoc %1 %2 a)
+                                              %1)) {} (nodes g)))
+  ([g k & l]
+   (reduce #(let [a (get-in (attrs g %2) [k l])]
+              (if (some? a)
+                (assoc %1 %2 a)
+                %1)) {} (nodes g))))
 
 (defn hash-jar [path]
   "create a hash of a jar's contents so we can know if it's updated and re-deploy"
@@ -42,3 +48,6 @@
     (md5-file path)
     (catch Exception e
       #_(println e))))
+
+(defn path [dir file]
+  (-> dir (f/file dir file) (.getPath)))

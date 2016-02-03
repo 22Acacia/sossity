@@ -41,7 +41,7 @@
     (go-loop []
       (let [out (generate-string (<! channel))
             out-file (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
-        (println node " sink: " out)
+        (if (:debug @this-conf) (println node " sink: " out))
         (clojure.java.io/make-parents out-file)
         (spit out-file (str out "\n") :append true :create true))
       (recur))))
@@ -77,7 +77,7 @@
   "eventually this will be used to apply a fn (or java jar or py) and fanout the results to chans"
   (go-loop []
     (let [v (<! in-channel)]
-      (println node ": " v)
+      (if (:debug @this-conf) (println node ": " v))
       (doseq  [c out-channels]
         (>! c (transform-fn g node v))))
     (recur)))
@@ -109,7 +109,7 @@
                              g
                              node
                              outward-edges)]
-    (println "creating outputs: " node)
+    (if (:debug @this-conf) (println "creating outputs: " node))
     (reduce #(add-attr %1 (key %2) :pub (val %2)) g (zipmap outward-edges out-pubs))))
 
 (defn get-pub [g node]
@@ -129,7 +129,6 @@
                     (add-attr node :pub p)))
               g)]
 
-    (println (str "out-deg: " node " " (out-degree gr node)))
     (if (or (= :pipeline (attr g node :exec)) (= :source (attr g node :exec)))
       (create-outputs gr node (get-pub gr node))
 

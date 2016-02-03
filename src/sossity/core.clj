@@ -144,7 +144,7 @@
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
   {node {:moduleName node :version "init" :gstorageKey gstoragekey :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-                     {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName  (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
@@ -334,15 +334,18 @@
   [["-c" "--config CONFIG" "comma-separated paths to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
-   ["-s" "--sim" "simulate cluster, running input scripts and producing file output"]])
+   ["-s" "--sim" "simulate cluster, running input scripts and producing file output"
+    "-d" "--dbg" "print simulator debugging info"]])
 (defn -main
   "Entry Point"
   [& args]
-  (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))]
+  (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))
+        conf (if (:dbg opts) (assoc-in opts [:config :debug] true) (:config opts))]
     (do
-      (if (:view opts) (view-graph (:config opts)))
+      (if (:view opts) (view-graph conf))
       (if (:sim opts)
-        (do (file-tester (read-graphs (:config opts)))
-            (Thread/sleep 10000))
-        (read-and-create (:config opts) (:output opts))))))
+        (do (file-tester (read-graphs conf))
+            (Thread/sleep 5000)
+            (println "Test output files created"))
+        (read-and-create conf (:output opts))))))
 
