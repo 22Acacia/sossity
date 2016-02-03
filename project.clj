@@ -22,7 +22,9 @@
                  [digest "1.4.4"]
                  [clj-time "0.11.0"]]
 
-  :plugins [[lein-cljfmt "0.3.0"]]
+  :plugins [[lein-cljfmt "0.3.0"]
+            [lein-maven-s3-wagon "0.2.5"]
+            ]
   :deploy-repositories [["releases" {:url      "s3://com.22acacia/releases"
                                          :username :env/AWS_ACCESS_KEY_ID
                                          :password :env/AWS_SECRET_KEY}]]
