@@ -18,10 +18,14 @@
                  [org.clojure/core.async "0.2.374"]
                  [danlentz/clj-uuid "0.1.6"]
                  [pandect "0.5.4"]
+                 [lein-maven-s3-wagon "0.2.5"]
                  [digest "1.4.4"]
                  [clj-time "0.11.0"]]
 
   :plugins [[lein-cljfmt "0.3.0"]]
+  :deploy-repositories [["com.22acacia" {:url "s3://com.22acacia/releases"
+                                         :username (System/getemv "AWS_ACCESS_KEY_ID")
+                                         :password (System/getenv "AWS_SECRET_KEY") }]]
   :main sossity.core
   :aot [sossity.core])
 
