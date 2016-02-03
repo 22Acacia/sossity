@@ -49,7 +49,11 @@
                               :region      "europe-west1-c"}
                   :googleappengine {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}"
                                     :project     "hx-test"
-                                    :region      "europe-west1-c"}})
+                                    :region      "europe-west1-c"}
+                  :googlebigquery {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}"
+                                   :project     "hx-test"
+                                   :region      "europe-west1-c"}
+                  })
 (def sm-pubsub-tops
   {:stream1bts-to-pipeline1bts {:name "stream1bts-to-pipeline1bts"}
    :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"}
@@ -208,7 +212,11 @@
                                :region "europe-west1-c"}
                    :googleappengine {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}"
                                      :project "hx-test"
-                                     :region "europe-west1-c"}})
+                                     :region "europe-west1-c"}
+                   :googlebigquery {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}"
+                                    :project     "hx-test"
+                                    :region      "europe-west1-c"}
+                   })
 
 (def big-pubsub-tops  {:sink3bts-to-sink3bts-error {:name "sink3bts-to-sink3bts-error"}
                        :pipeline3bts-to-sink2bts {:name "pipeline3bts-to-sink2bts"}
