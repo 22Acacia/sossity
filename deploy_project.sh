@@ -30,4 +30,12 @@ if [ $ret -ne 0 ]; then
   exit $ret
 fi
 
+gsutil acl -r ch -u AllUsers:R gs://${GSTORAGE_DEST_BUCKET}/${app_name}
+ret=$?
+if [ $ret -ne 0 ]; then
+  echo "Failed to update bucket ACL to public"
+  exit $ret
+fi
+
+
 curl -XPOST https://circleci.com/api/v1/project/22acacia/demo-config/tree/master?circle-token=$CIRCLE_TOKEN
