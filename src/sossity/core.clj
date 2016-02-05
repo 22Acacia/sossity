@@ -292,16 +292,17 @@
 
 (defn merge-graph-items [g1 g2]
   (-> g1
-      (update :pipelines #(merge % (:pipelines g2)))
-      (update :edges #(apply merge % (:edges g2)))
-      (update :sources #(merge % (:sources g2)))
-      (update :sinks #(merge % (:sinks g2)))))
+      (update :config #(merge-with conj % (:config g2)))
+      (update :pipelines #(merge-with conj % (:pipelines g2)))
+      (update :edges #(merge-with conj % (:edges g2)))
+      (update :sources #(merge-with conj % (:sources g2)))
+      (update :sinks #(merge-with conj % (:sinks g2)))))
 
 {:pipelines {"stream1bts" {:type "kub"} "orion" {:type "kub"}}} {:pipelines {"stream2bts" {:type "kub"} "orion2" {:type "kub"}}}
 
 (defn read-graphs [input-files]
   "returns a graph of all the subgraph files, merged"
-  (let [inputs (doall (map (comp read-string slurp) (clojure.string/split input-files #",")))]
+  (let [inputs (doall (map (comp read-string slurp) input-files))]
     (reduce #(merge-graph-items %1 %2) inputs)))
 
 (defn read-and-create
@@ -334,17 +335,22 @@
   [["-c" "--config CONFIG" "comma-separated paths to .clj config file for pipeline"]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
-   ["-s" "--sim" "simulate cluster, running input scripts and producing file output"
-    "-d" "--dbg" "print simulator debugging info"]])
+   ["-s" "--sim" "simulate cluster, running input scripts and producing file output"]
+   ["-tf" "--testfile TESTFILE" "test file for simulator, defines local testing environment"]
+   #_["-d" "--dbg" "print simulator debugging info"]])
+
 (defn -main
   "Entry Point"
   [& args]
   (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))
-        conf (if (:dbg opts) (assoc-in opts [:config :debug] true) (:config opts))]
+        conf (if (:dbg opts) (:config (assoc-in opts [:config :debug] true)) (:config opts))]
     (do
       (if (:view opts) (view-graph conf))
       (if (:sim opts)
-        (do (file-tester (read-graphs conf))
+        (do
+          (println opts)
+          (println (conj (clojure.string/split conf #",") (:testfile opts)))
+          (file-tester (read-graphs (conj (clojure.string/split conf #",") (:testfile opts))))
             (Thread/sleep 5000)
             (println "Test output files created"))
         (read-and-create conf (:output opts))))))

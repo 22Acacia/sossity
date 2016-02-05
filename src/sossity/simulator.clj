@@ -40,7 +40,7 @@
     #_(clojure.java.io/make-parents (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp))
     (go-loop []
       (let [out (generate-string (<! channel))
-            out-file (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
+            out-file (u/get-path (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
         (if (:debug @this-conf) (println node " sink: " out))
         (clojure.java.io/make-parents out-file)
         (spit out-file (str out "\n") :append true :create true))
@@ -56,9 +56,8 @@
 
 (defn setup-jars [g sossity-config]
   "load angled-dream and all relevant jars. sossity-config is a global ref, but fuckit"
-  (doall (map #(pom/add-classpath (u/path (attr g % :local-jar-path) (attr g % :transform-jar))) (u/filter-node-attrs g :local-jar-path some?))
-         #_(pom/add-classpath (:local-angleddream-path sossity-config))
-         ))
+  (doall
+    (map #(pom/add-classpath (u/get-path (attr g % :local-jar-path) (attr g % :transform-jar))) (u/filter-node-attr-exists g :local-jar-path))))
 
 (defn apply-test-transform [node input]
   (assoc input :chans (conj (:chans input) node)))

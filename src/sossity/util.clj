@@ -4,8 +4,10 @@
             [loom.io :refer :all]
             [loom.attr :refer :all]
             [pandect.algo.md5 :refer :all]
-            [clojure.java.io :as f])
-  (:import (java.security MessageDigest)))
+            [clojure.java.io :as f]
+            )
+  (:import (java.security MessageDigest)
+           (java.nio.file Paths)))
 
 (defn filter-node-attrs
   ([g keyword value]
@@ -18,6 +20,13 @@
    (filter (fn [x] (not= value (attr g x keyword))) (nodes g)))
   ([g keyword value nodes]
    (filter (fn [x] (not= value (attr g x keyword))) nodes)))
+
+(defn filter-node-attr-exists
+  ([g keyword]
+   (filter (fn [x] (some? (attr g x keyword))) (nodes g)))
+  ([g keyword nodes]
+   (filter (fn [x] (some? (attr g x keyword))) nodes))
+  )
 
 (defn filter-not-edge-attrs
   ([g keyword value]
@@ -49,5 +58,8 @@
     (catch Exception e
       #_(println e))))
 
-(defn path [dir file]
-  (-> dir (f/file dir file) (.getPath)))
+(defn get-path [^String dir & args]
+"returns well-formed path string. internally implemented this way because java does weird things with variadic fns"
+  (.toString (Paths/get dir (into-array String args)))
+
+  )
