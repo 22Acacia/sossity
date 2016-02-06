@@ -343,14 +343,14 @@
   "Entry Point"
   [& args]
   (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))
-        conf (if (:dbg opts) (:config (assoc-in opts [:config :debug] true)) (:config opts))]
+        conf (clojure.string/split (if (:dbg opts) (:config (assoc-in opts [:config :debug] true)) (:config opts)) #",")]
     (do
       (if (:view opts) (view-graph conf))
       (if (:sim opts)
         (do
           (println opts)
-          (println (conj (clojure.string/split conf #",") (:testfile opts)))
-          (file-tester (read-graphs (conj (clojure.string/split conf #",") (:testfile opts))))
+          (println (conj conf (:testfile opts)))
+          (file-tester (read-graphs (conj conf (:testfile opts))))
             (Thread/sleep 5000)
             (println "Test output files created"))
         (read-and-create conf (:output opts))))))
