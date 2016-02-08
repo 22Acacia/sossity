@@ -167,7 +167,10 @@
         resource-hashes (filter some? (map #(u/hash-jar %) classpath))
         opt-map {:pubsubTopic       input-topic
                  :pipelineName      node
-                 :errorPipelineName error-topic}
+                 :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
+
+
+                 }
         opt-mapb (if-not (= (attr g node :type) "bq")
                    (assoc opt-map :outputTopics (clojure.string/join (interpose "," output-topics)))
                    opt-map)

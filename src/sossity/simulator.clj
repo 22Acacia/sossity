@@ -40,7 +40,7 @@
     #_(clojure.java.io/make-parents (str (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp))
     (go-loop []
       (let [out (generate-string (<! channel))
-            out-file (u/get-path (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp "/" node ".txt")]
+            out-file (u/get-path (get-in @this-conf [:config-file :config :test-output]) "test-output/" @execute-timestamp (str "/" node ".txt"))]
         (if (:debug @this-conf) (println node " sink: " out))
         (clojure.java.io/make-parents out-file)
         (spit out-file (str out "\n") :append true :create true))
