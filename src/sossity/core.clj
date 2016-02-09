@@ -28,7 +28,6 @@
 (def default-force-bucket-destroy true)
 (def sub-suffix "_sub")
 (def gstoragebucket "build-artifacts-public-eu")
-(def gstoragekey "hxtest-1.0-SNAPSHOT")
 (def default-min-idle 1)
 (def default-max-idle 1)
 (def default-min-pending-latency "3s")
@@ -118,13 +117,14 @@
     output))
 
 (defn create-sink-container [g node conf]
+  "Create a kubernetes node to read data from a pubsub and output it somewhere."
   (let [item_name (clojure.string/lower-case (str node "-sink"))
         proj_name (:project conf)
         resource_version (get-in conf [:config-file :config :sink-resource-version])
         sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
         bucket_name (attr g node :bucket)
         zone (:region conf)
-        output {item_name {:name item_name :resource_version [resource_version] :docker_image sink-docker-img :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name}}}]
+        output {item_name {:name item_name :resource_version [resource_version] :docker_image (get-in conf [:config-file :config :default-sink-docker-image] ) :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name}}}]
     output))
 
 (defn create-sub [g edge]
@@ -143,8 +143,8 @@
 (defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
-  {node {:moduleName node :version "init" :gstorageKey gstoragekey :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+  {node {:moduleName node :version "init" :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey] ) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
+                     {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName  (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
@@ -300,8 +300,6 @@
       (update :edges #(merge-with conj % (:edges g2)))
       (update :sources #(merge-with conj % (:sources g2)))
       (update :sinks #(merge-with conj % (:sinks g2)))))
-
-{:pipelines {"stream1bts" {:type "kub"} "orion" {:type "kub"}}} {:pipelines {"stream2bts" {:type "kub"} "orion2" {:type "kub"}}}
 
 (defn read-graphs [input-files]
   "returns a graph of all the subgraph files, merged"

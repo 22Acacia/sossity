@@ -21,6 +21,8 @@
                :test-output "/home/bradford/proj/sossity/test/"
                :sink-resource-version "1"
                :source-resource-version "1"
+               :appengine-gstoragekey "hxtest-1.0-SNAPSHOT"
+               :default-sink-docker-image "gcr.io/hx-test/store-sink"
                :error-buckets true}
    :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
@@ -170,6 +172,8 @@
                :remote-libs-path          "/usr/local/lib"
                :sink-resource-version "1"
                :source-resource-version "1"
+               :appengine-gstoragekey "hxtest-1.0-SNAPSHOT"
+               :default-sink-docker-image "gcr.io/hx-test/store-sink"
                :error-buckets true}
    :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
