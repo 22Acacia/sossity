@@ -5,6 +5,7 @@
             [loom.attr :refer :all]
             [pandect.algo.md5 :refer :all]
             [clojure.java.io :as f]
+            [clojure.walk :refer [postwalk]]
             )
   (:import (java.security MessageDigest)
            (java.nio.file Paths)))
@@ -60,6 +61,9 @@
 
 (defn get-path [^String dir & args]
 "returns well-formed path string. internally implemented this way because java does weird things with variadic fns"
-  (.toString (Paths/get dir (into-array String args)))
+  (.toString (Paths/get dir (into-array String args))))
 
-  )
+(defn remove-nils
+  [m]
+  (let [f (fn [[k v]] (when v [k v]))]
+    (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m)))

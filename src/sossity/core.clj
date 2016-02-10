@@ -284,7 +284,10 @@
         controllers {:googlecli_container_replica_controller (output-sinks g conf)}
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
-        out (clojure.string/trim (generate-string combined {:pretty true}))]
+        filtered-out (u/remove-nils combined)
+        out (clojure.string/trim (generate-string filtered-out {:pretty true}))
+
+        ]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
 
@@ -312,7 +315,7 @@
 
 (defn view-graph
   [input]
-  (loom.io/view (create-dag (read-graphs input) (config-md (read-string (slurp input))))))
+  (loom.io/view (create-dag (read-graphs input) (config-md (read-graphs input)))))
 
 (defn test-cluster [a-graph]
   "given a config map, test a cluster. returns [graph input-pipes]"
@@ -346,13 +349,13 @@
   (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))
         conf (clojure.string/split (if (:dbg opts) (:config (assoc-in opts [:config :debug] true)) (:config opts)) #",")]
     (do
-      (if (:view opts) (view-graph conf))
-      (if (:sim opts)
-        (do
-          (println opts)
-          (println (conj conf (:testfile opts)))
-          (file-tester (read-graphs (conj conf (:testfile opts))))
-            (Thread/sleep 5000)
-            (println "Test output files created"))
-        (read-and-create conf (:output opts))))))
+      (if (:view opts) (view-graph conf)
+                       (if (:sim opts)
+                         (do
+                           (println opts)
+                           (println (conj conf (:testfile opts)))
+                           (file-tester (read-graphs (conj conf (:testfile opts))))
+                           (Thread/sleep 5000)
+                           (println "Test output files created"))
+                                (read-and-create conf (:output opts)))))))
 
