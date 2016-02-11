@@ -9,24 +9,6 @@ You should almost never need to build Sossity for testing or simulation. Instead
 
 [https://storage.googleapis.com/build-artifacts-public-eu/sossity/sossity-0.1.0-SNAPSHOT-standalone.jar](https://storage.googleapis.com/build-artifacts-public-eu/sossity/sossity-0.1.0-SNAPSHOT-standalone.jar)
 
-Sossity should not be used as a dependency in any project, but if you need to:
-
-  <repositories>
-    <repository>
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
-    </repository>
-  </repositories>
-
-
-  <dependencies>
-    <dependency>
-      <groupId>com.github.22Acacia</groupId>
-      <artifactId>sossity</artifactId>
-      <version>-SNAPSHOT</version>
-    </dependency>
-
-
 
 ## Building Sossity
 
