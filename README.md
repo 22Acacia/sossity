@@ -34,4 +34,4 @@ You should almost never need to build Sossity for testing or simulation. Instead
 
 `java -jar sossity{ver}-standalone.jar -s -c <config1.clj>,<config2.clj>,<config3.clj> --testfile <test_config.clj>`
 
-Per-sink test output files are created in `test-output/`
+Per-sink test output files are created in  `:config {:test-output ""}` in `test_config.clj`
