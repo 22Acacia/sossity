@@ -1,6 +1,7 @@
 (ns sossity.core
   (:require
    [loom.graph :refer :all]
+   [sossity.config-schema :as cs]
    [loom.alg :refer :all]
    [loom.io :refer :all]
    [loom.attr :refer :all]
@@ -304,7 +305,7 @@
       (update :sinks #(merge-with conj % (:sinks g2)))))
 
 (defn validate-config [a-graph]
-  (s/validate sossity.config-schema/base a-graph))
+  (s/validate cs/base a-graph))
 
 (defn read-graphs [input-files]
   "returns a graph of all the subgraph files, merged"
