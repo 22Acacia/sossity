@@ -57,7 +57,7 @@
 (defn setup-jars [g sossity-config]
   "load angled-dream and all relevant jars. sossity-config is a global ref, but fuckit"
   (doall
-    (map #(pom/add-classpath (u/get-path (attr g % :local-jar-path) (attr g % :transform-jar))) (u/filter-node-attr-exists g :local-jar-path))))
+   (map #(pom/add-classpath (u/get-path (attr g % :local-jar-path) (attr g % :transform-jar))) (u/filter-node-attr-exists g :local-jar-path))))
 
 (defn apply-test-transform [node input]
   (assoc input :chans (conj (:chans input) node)))
@@ -70,8 +70,7 @@
 (defn transform-fn [g node input]
   (if-let [t (attr g node :composer-class)]
     (apply-sossity-transform t input g)
-    input
-    ))
+    input))
 
 (defn pass-on [in-channel g node out-channels]
   "eventually this will be used to apply a fn (or java jar or py) and fanout the results to chans"

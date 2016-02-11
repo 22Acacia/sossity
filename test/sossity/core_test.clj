@@ -16,14 +16,18 @@
 
 (def small-test-gr
   {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
-               :local-angleddream-path    "/home/bradford/proj/angled-dream/target/angleddream-bundled-0.1-ALPHA.jar"
                :remote-libs-path          "/usr/local/lib"
-               :test-output "/home/bradford/proj/sossity/test/"
-               :sink-resource-version "1"
-               :source-resource-version "1"
-               :appengine-gstoragekey "hxtest-1.0-SNAPSHOT"
+               :error-buckets             true
+               :sink-resource-version     "1"
+               :source-resource-version   "1"
+               :appengine-gstoragekey     "hxtest-1.0-SNAPSHOT"
                :default-sink-docker-image "gcr.io/hx-test/store-sink"
-               :error-buckets true}
+               :system-jar-info           {:angleddream {:name "angleddream-bundled-0.1-ALPHA.jar"
+                                                         :pail "build-artifacts-public-eu"
+                                                         :key  "angleddream"}
+                                           :sossity     {:name "sossity-0.1.0-SNAPSHOT-standalone.jar"
+                                                         :pail "build-artifacts-public-eu"
+                                                         :key  "sossity"}}}
    :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
@@ -36,9 +40,9 @@
    :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
    :pipelines {"pipeline1bts"
                {:transform-jar   "pipeline3.jar"
-                :local-jar-path  "/home/bradford/proj/pipeline-examples/pipeline3/target/pipeline3-bundled-0.1-ALPHA.jar"
-                :composer-class "com.acacia.pipeline3.AppendStringComposer"}}
-   :sources   {"stream1bts" {:type "kub" :test-input "/home/bradford/proj/pipeline-examples/test-inputs/stream1bts.json"}}
+                :pail "build-artifacts-public-eu"
+                :key "orion-transform"}}
+   :sources   {"stream1bts" {:type "kub"}}
    :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
    :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
                {:origin "pipeline1bts" :targets ["sink1bts"]}]})
@@ -168,13 +172,18 @@
 
 (def big-test-gr
   {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
-               :local-angleddream-path    "/home/bradford/proj/angled-dream/target/angleddream-bundled-0.1-ALPHA.jar"
                :remote-libs-path          "/usr/local/lib"
-               :sink-resource-version "1"
-               :source-resource-version "1"
-               :appengine-gstoragekey "hxtest-1.0-SNAPSHOT"
+               :error-buckets             true
+               :sink-resource-version     "1"
+               :source-resource-version   "1"
+               :appengine-gstoragekey     "hxtest-1.0-SNAPSHOT"
                :default-sink-docker-image "gcr.io/hx-test/store-sink"
-               :error-buckets true}
+               :system-jar-info           {:angleddream {:name "angleddream-bundled-0.1-ALPHA.jar"
+                                                         :pail "build-artifacts-public-eu"
+                                                         :key  "angleddream"}
+                                           :sossity     {:name "sossity-0.1.0-SNAPSHOT-standalone.jar"
+                                                         :pail "build-artifacts-public-eu"
+                                                         :key  "sossity"}}}
    :cluster   {:name        "hxhstack" :initial_node_count 3 :master_auth {:username "hx" :password "hstack"}
                :node_config {:oauth_scopes ["https://www.googleapis.com/auth/compute"
                                             "https://www.googleapis.com/auth/devstorage.read_only"
@@ -186,13 +195,21 @@
                :stagingLocation "gs://hx-test/staging-eu"}
    :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
    :pipelines {"pipeline1bts"
-               {:transform-jar "/usr/local/lib/pipeline1.jar"}
+               {:transform-jar "/usr/local/lib/pipeline1.jar"
+                :pail "build-artifacts-public-eu"
+                :key "orion-transform"}
                "pipeline2bts"
-               {:transform-jar "/usr/local/lib/pipeline2.jar"}
+               {:transform-jar "/usr/local/lib/pipeline2.jar"
+                :pail "build-artifacts-public-eu"
+                :key "orion-transform"}
                "pipeline3bts"
-               {:transform-jar "/usr/local/lib/pipeline3.jar"}
+               {:transform-jar "/usr/local/lib/pipeline3.jar"
+                :pail "build-artifacts-public-eu"
+                :key "orion-transform"}
                "orionpipe"
-               {:transform-jar "/usr/local/lib/pipeline1.jar"}}
+               {:transform-jar "/usr/local/lib/pipeline1.jar"
+                :pail "build-artifacts-public-eu"
+                :key "orion-transform"}}
    :sources   {"stream1bts" {:type "kub"}
                "stream2bts" {:type "kub"}
                "orion"      {:type "kub"}}

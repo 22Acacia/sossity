@@ -12,7 +12,8 @@
    [traversy.lens :as t :refer :all :exclude [view update combine]]
    [clj-time.core :as ti]
    [clojure.core.async :as a
-    :refer [>! <! >!! <!! go chan buffer close! thread alts! alts!! timeout pub sub unsub unsub-all go-loop put!]])
+    :refer [>! <! >!! <!! go chan buffer close! thread alts! alts!! timeout pub sub unsub unsub-all go-loop put!]]
+   [schema.core :as s])
   (:gen-class))
 
 (def app-prefix "googleappengine_app")
@@ -124,7 +125,7 @@
         sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
         bucket_name (attr g node :bucket)
         zone (:region conf)
-        output {item_name {:name item_name :resource_version [resource_version] :docker_image (get-in conf [:config-file :config :default-sink-docker-image] ) :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name}}}]
+        output {item_name {:name item_name :resource_version [resource_version] :docker_image (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name}}}]
     output))
 
 (defn create-sub [g edge]
@@ -143,8 +144,8 @@
 (defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
-  {node {:moduleName node :version "init" :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey] ) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-                     {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+  {node {:moduleName node :version "init" :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
+         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName  (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
@@ -168,9 +169,7 @@
         opt-map {:pubsubTopic       input-topic
                  :pipelineName      node
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
-
-
-                 }
+}
         opt-mapb (if-not (= (attr g node :type) "bq")
                    (assoc opt-map :outputTopics (clojure.string/join (interpose "," output-topics)))
                    opt-map)
@@ -285,9 +284,7 @@
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
-        out (clojure.string/trim (generate-string filtered-out {:pretty true}))
-
-        ]
+        out (clojure.string/trim (generate-string filtered-out {:pretty true}))]
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
 
@@ -306,10 +303,14 @@
       (update :sources #(merge-with conj % (:sources g2)))
       (update :sinks #(merge-with conj % (:sinks g2)))))
 
+(defn validate-config [a-graph]
+  (s/validate sossity.config-schema/base a-graph))
+
 (defn read-graphs [input-files]
   "returns a graph of all the subgraph files, merged"
   (let [inputs (doall (mapv (comp read-string slurp) input-files))]
-    (reduce #(merge-graph-items %1 %2) {} inputs)))
+    (-> (reduce #(merge-graph-items %1 %2) {} inputs)
+        validate-config)))
 
 (defn read-and-create
   [input output]
@@ -355,13 +356,12 @@
       (println opts)
       (if-not opts (println (:summary parsed)))
       (if (:errors parsed) (println "ERROR:" (:errors parsed))
-                         (if (:view opts) (view-graph conf)
-                                          (if (:sim opts)
-                                            (do
-                                              (file-tester (read-graphs (conj conf (:testfile opts))))
-                                              (Thread/sleep 5000)
-                                              (println "Test output files created"))
-                                            (do (read-and-create conf (:output opts))
-                                                (println "Terraform file created")
-                                                                 )))))))
+          (if (:view opts) (view-graph conf)
+              (if (:sim opts)
+                (do
+                  (file-tester (read-graphs (conj conf (:testfile opts))))
+                  (Thread/sleep 5000)
+                  (println "Test output files created"))
+                (do (read-and-create conf (:output opts))
+                    (println "Terraform file created"))))))))
 
