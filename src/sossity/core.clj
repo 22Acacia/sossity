@@ -8,7 +8,7 @@
    [sossity.simulator :as sim]
    [sossity.util :as u]
    [flatland.useful.experimental :refer :all]
-   [clojure.tools.cli :refer [parse-opts]]
+   [clojure.tools.cli :as cl :refer :all]
    [traversy.lens :as t :refer :all :exclude [view update combine]]
    [clj-time.core :as ti]
    [clojure.core.async :as a
@@ -298,16 +298,18 @@
 
 (defn merge-graph-items [g1 g2]
   (-> g1
+      (update :opts #(merge-with conj % (:opts g2)))
+      (update :cluster #(merge-with conj % (:cluster g2)))
       (update :config #(merge-with conj % (:config g2)))
       (update :pipelines #(merge-with conj % (:pipelines g2)))
-      (update :edges #(merge-with conj % (:edges g2)))
+      (update :edges #(concat % (:edges g2)))
       (update :sources #(merge-with conj % (:sources g2)))
       (update :sinks #(merge-with conj % (:sinks g2)))))
 
 (defn read-graphs [input-files]
   "returns a graph of all the subgraph files, merged"
-  (let [inputs (doall (map (comp read-string slurp) input-files))]
-    (reduce #(merge-graph-items %1 %2) inputs)))
+  (let [inputs (doall (mapv (comp read-string slurp) input-files))]
+    (reduce #(merge-graph-items %1 %2) {} inputs)))
 
 (defn read-and-create
   [input output]
@@ -336,7 +338,7 @@
         (put! (get pipes pipe) (sim/handle-message data))))))
 
 (def cli-options
-  [["-c" "--config CONFIG" "comma-separated paths to .clj config file for pipeline"]
+  [["-c" "--config CONFIG" "cinna-delimited paths to .clj config file for pipeline e.g. 'test-files/config1.clj,test-files/config2.clj' "]
    ["-o" "--output OUTPUT" "path to output terraform file"]
    ["-v" "--view" "view visualization, requires graphviz installed"]
    ["-s" "--sim" "simulate cluster, running input scripts and producing file output"]
@@ -346,16 +348,20 @@
 (defn -main
   "Entry Point"
   [& args]
-  (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))
-        conf (clojure.string/split (if (:dbg opts) (:config (assoc-in opts [:config :debug] true)) (:config opts)) #",")]
+  (let [parsed (cl/parse-opts args cli-options)
+        opts (:options parsed)
+        conf (clojure.string/split (:config opts) #",")]
     (do
-      (if (:view opts) (view-graph conf)
-                       (if (:sim opts)
-                         (do
-                           (println opts)
-                           (println (conj conf (:testfile opts)))
-                           (file-tester (read-graphs (conj conf (:testfile opts))))
-                           (Thread/sleep 5000)
-                           (println "Test output files created"))
-                                (read-and-create conf (:output opts)))))))
+      (println opts)
+      (if-not opts (println (:summary parsed)))
+      (if (:errors parsed) (println "ERROR:" (:errors parsed))
+                         (if (:view opts) (view-graph conf)
+                                          (if (:sim opts)
+                                            (do
+                                              (file-tester (read-graphs (conj conf (:testfile opts))))
+                                              (Thread/sleep 5000)
+                                              (println "Test output files created"))
+                                            (do (read-and-create conf (:output opts))
+                                                (println "Terraform file created")
+                                                                 )))))))
 

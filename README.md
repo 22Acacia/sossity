@@ -1,8 +1,55 @@
-# sossity
+# Sossity: Collaborative Pipeline Orchestration.
 
-Pipeline orchestration.
-  1. Install leiningen, be sure to set it to env var https://github.com/technomancy/leiningen
-  1. Follow instructions on https://github.com/22Acacia/angled-dream and https://github.com/22Acacia/pipeline-examples to build sample files
-  1. Create .clj file for pipelines (see https://github.com/22Acacia/pipeline-examples/blob/master/orchestrate/tiny_config.clj for example)
-  1. to build: lein uberjar
-  2. java -jar target/sossity-0.1.0-SNAPSHOT-standalone.jar -c "/home/proj/pipeline-examples/orchestrate/tiny_config.clj,path/to/another/config.clj" -o "/home/bradford/terraform/terraform-output-file.tf.json"
+
+See [How Sossity Works](https://github.com/22Acacia/sossity/wiki/How-Sossity-Works) for an overview.
+
+## Artifact
+
+You should almost never need to build Sossity for testing or simulation. Instead, download the artifact from:
+
+[https://storage.googleapis.com/build-artifacts-public-eu/sossity/sossity-0.1.0-SNAPSHOT-standalone.jar](https://storage.googleapis.com/build-artifacts-public-eu/sossity/sossity-0.1.0-SNAPSHOT-standalone.jar)
+
+Sossity should not be used as a dependency in any project, but if you need to:
+
+  <repositories>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+  </repositories>
+
+
+  <dependencies>
+    <dependency>
+      <groupId>com.github.22Acacia</groupId>
+      <artifactId>sossity</artifactId>
+      <version>-SNAPSHOT</version>
+    </dependency>
+
+
+
+## Building Sossity
+
+
+
+1. Install Oracle JDK8
+1. Install leiningen, be sure to set it to the appropriate environment variable https://github.com/technomancy/leiningen
+1. `lein uberjar`
+1. Use the `sossity{ver}-standalone.jar`
+
+
+## Running Sossity
+
+### Create Terraform output file (primary usage)
+
+`java -jar sossity{ver}-standalone.jar -c <config1.clj>,<config2.clj>,<config3.clj> -o <terraform-output.tf.json>`
+
+### View Resource Graph
+
+`java -jar sossity{ver}-standalone.jar -c <config1.clj>,<config2.clj>,<config3.clj> -o <terraform-output.tf.json>`
+
+### Run Simulator
+
+`java -jar sossity{ver}-standalone.jar -s -c <config1.clj>,<config2.clj>,<config3.clj> --testfile <test_config.clj>`
+
+Per-sink test output files are created in `test-output/`
