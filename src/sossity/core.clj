@@ -35,7 +35,7 @@
 (def default-min-pending-latency "3s")
 (def default-max-pending-latency "6s")
 
-(defn source-topic-name [topic] (str topic "_out"))
+(defn source-topic-name [topic] topic)
 
 (defn new-topic-name [in out] (str in "-to-" out))
 
@@ -82,8 +82,10 @@
 
 (defn name-edge
   "name the edge"
-  [_ [in out]]
-  (new-topic-name in out))
+  [g [in out]]
+  (if (= 0 (in-degree g in))
+    (source-topic-name in)
+    (new-topic-name in out)))
 
 (defn topic-edge
   "combine edge name and graph project with 2 strings to demonstrate varaible args"

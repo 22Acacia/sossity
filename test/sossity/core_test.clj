@@ -60,7 +60,7 @@
                                    :project     "hx-test"
                                    :region      "europe-west1-c"}})
 (def sm-pubsub-tops
-  {:stream1bts-to-pipeline1bts {:name "stream1bts-to-pipeline1bts"}
+  {:stream1bts {:name "stream1bts"}
    :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"}
    :pipeline1bts-to-sink1bts {:name "pipeline1bts-to-sink1bts"}
    :sink1bts-to-sink1bts-error {:name "sink1bts-to-sink1bts-error"}})
@@ -132,7 +132,7 @@
                                                  :maxIdleInstances  1
                                                  :minPendingLatency "3s"
                                                  :maxPendingLatency "6s"}
-                                :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"}})
+                                :topicName      "projects/hx-test/topics/stream1bts"}})
 
 (def sm-dataflows {:pipeline1bts (dissoc {:name          "pipeline1bts"
                                           :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline3.jar"
@@ -140,8 +140,8 @@
                                           :depends_on    ["google_pubsub_topic.pipeline1bts-to-sink1bts"
                                                           "googleappengine_app.stream1bts"
                                                           "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
-                                                          "google_pubsub_topic.stream1bts-to-pipeline1bts"]
-                                          :optional_args {:pubsubTopic       "projects/hx-test/topics/stream1bts-to-pipeline1bts"
+                                                          "google_pubsub_topic.stream1bts"]
+                                          :optional_args {:pubsubTopic       "projects/hx-test/topics/stream1bts"
                                                           :pipelineName      "pipeline1bts"
                                                           :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error"
                                                           :outputTopics      "projects/hx-test/topics/pipeline1bts-to-sink1bts"
@@ -239,13 +239,13 @@
 
 (def big-pubsub-tops  {:sink3bts-to-sink3bts-error {:name "sink3bts-to-sink3bts-error"}
                        :pipeline3bts-to-sink2bts {:name "pipeline3bts-to-sink2bts"}
-                       :orion-to-orionpipe {:name "orion-to-orionpipe"}
+                       :orion {:name "orion"}
                        :pipeline2bts-to-sink1bts {:name "pipeline2bts-to-sink1bts"}
                        :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"}
                        :sink1bts-to-sink1bts-error {:name "sink1bts-to-sink1bts-error"}
                        :pipeline2bts-to-sink3bts {:name "pipeline2bts-to-sink3bts"}
                        :pipeline3bts-to-pipeline3bts-error {:name "pipeline3bts-to-pipeline3bts-error"}
-                       :stream1bts-to-pipeline1bts {:name "stream1bts-to-pipeline1bts"}
+                       :stream1bts {:name "stream1bts"}
                        :pipeline2bts-to-pipeline2bts-error {:name "pipeline2bts-to-pipeline2bts-error"}
                        :orionsink-to-orionsink-error {:name "orionsink-to-orionsink-error"}
                        :orionpipe-to-orionpipe-error {:name "orionpipe-to-orionpipe-error"}
@@ -450,8 +450,8 @@
                                                            "google_pubsub_topic.pipeline1bts-to-pipeline2bts"
                                                            "googleappengine_app.stream1bts"
                                                            "google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"
-                                                           "google_pubsub_topic.stream1bts-to-pipeline1bts"]
-                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/stream1bts-to-pipeline1bts"
+                                                           "google_pubsub_topic.stream1bts"]
+                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/stream1bts"
                                                            :pipelineName      "pipeline1bts"
                                                            :errorPipelineName "projects/hx-test/topics/pipeline1bts-to-pipeline1bts-error"
                                                            :outputTopics      "projects/hx-test/topics/pipeline1bts-to-pipeline3bts,projects/hx-test/topics/pipeline1bts-to-pipeline2bts"
@@ -499,8 +499,8 @@
                                            :depends_on    ["google_pubsub_topic.orionpipe-to-orionsink"
                                                            "googleappengine_app.orion"
                                                            "google_pubsub_topic.orionpipe-to-orionpipe-error"
-                                                           "google_pubsub_topic.orion-to-orionpipe"]
-                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/orion-to-orionpipe"
+                                                           "google_pubsub_topic.orion"]
+                                           :optional_args {:pubsubTopic       "projects/hx-test/topics/orion"
                                                            :pipelineName      "orionpipe"
                                                            :errorPipelineName "projects/hx-test/topics/orionpipe-to-orionpipe-error"
                                                            :outputTopics      "projects/hx-test/topics/orionpipe-to-orionsink"
@@ -519,7 +519,7 @@
                                                   :maxIdleInstances  1
                                                   :minPendingLatency "3s"
                                                   :maxPendingLatency "6s"}
-                                 :topicName      "projects/hx-test/topics/stream1bts-to-pipeline1bts"}
+                                 :topicName      "projects/hx-test/topics/stream1bts"}
                     :orion      {:moduleName     "orion"
                                  :version        "init"
                                  :gstorageKey    "hxtest-1.0-SNAPSHOT"
@@ -529,7 +529,7 @@
                                                   :maxIdleInstances  1
                                                   :minPendingLatency "3s"
                                                   :maxPendingLatency "6s"}
-                                 :topicName      "projects/hx-test/topics/orion-to-orionpipe"}})
+                                 :topicName      "projects/hx-test/topics/orion"}})
 
 (deftest test-big-graph
   (let [g (create-parsed-output big-test-gr)]
