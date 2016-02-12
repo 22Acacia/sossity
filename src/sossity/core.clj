@@ -299,6 +299,7 @@
 (defn merge-graph-items [g1 g2]
   (-> g1
       (update :opts #(merge-with conj % (:opts g2)))
+      (update :provider #(merge-with conj % (:provider g2)))
       (update :cluster #(merge-with conj % (:cluster g2)))
       (update :config #(merge-with conj % (:config g2)))
       (update :pipelines #(merge-with conj % (:pipelines g2)))
@@ -365,6 +366,7 @@
                   (file-tester (read-graphs (conj conf (:testfile opts))))
                   (Thread/sleep 5000)
                   (println "Test output files created"))
-                (do (read-and-create conf (:output opts))
+                (do
+                  (read-and-create conf (:output opts))
                     (println "Terraform file created"))))))))
 
