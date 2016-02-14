@@ -128,7 +128,14 @@
         sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
         bucket_name (attr g node :bucket)
         zone (:region conf)
-        output {item_name {:name item_name :resource_version [resource_version] :docker_image (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name}}}]
+        sink_type (attr g node :sink_type)
+        rsys_table (attr g node :rsys_table)
+        rsys_user (attr g node :rsys_user)
+        error_topic (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)
+        output {item_name {:name item_name :resource_version [resource_version] :docker_image
+                           (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone
+                           :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name
+                                      :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error_topic :merge_insert true}}}]
     output))
 
 (defn create-sub [g edge]
