@@ -95,7 +95,9 @@
                                                                         :batch_size  1000
                                                                         :proj_name   "hx-test"
                                                                         :sub_name    "pipeline1bts-to-sink1bts_sub"
-                                                                        :bucket_name "sink1-bts-test"}}
+                                                                        :bucket_name "sink1-bts-test"
+
+                                                                        }}
                              :pipeline1bts-error-sink {:name           "pipeline1bts-error-sink"
                                                        :docker_image   "gcr.io/hx-test/store-sink"
                                                        :resource_version ["1"]

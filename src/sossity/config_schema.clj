@@ -38,7 +38,12 @@
                 (s/optional-key :bucket) s/Str
                 (s/optional-key :bigQueryDataset) s/Str
                 (s/optional-key :bigQueryTable) s/Str
-                (s/optional-key :bigQuerySchema) s/Str})
+                (s/optional-key :bigQuerySchema) s/Str
+                (s/optional-key :sink_type) s/Str
+                (s/optional-key :rsys_user) s/Str
+                (s/optional-key :rsys_table) s/Str
+                (s/optional-key :merge_insert) s/Bool
+                })
 
 (def sinks {s/Str sink-item})
 
