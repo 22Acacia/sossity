@@ -136,9 +136,9 @@
         resource_version (attr g node :resource-version)
         zone (:region conf)
         image (attr g node :image)
-        env_args (attr g node :args)]
+        env_args (assoc (attr g node :args) :proj_name proj_name)]
 
-    {item_name {:name item_name :resouce_version [resource_version] :docker_image image :zone zone :proj_name proj_name :env_args env_args}}))
+    {item_name {:name item_name :contianer_name node :resource_version [resource_version] :docker_image image :zone zone  :env_args env_args}}))
 
 (defn create-sink-container [g node conf]
   "Create a kubernetes node to read data from a pubsub and output it somewhere."
