@@ -24,6 +24,7 @@
 (def pipeline-item {:transform-jar                   s/Str
                     :pail                                s/Str
                     :key s/Str
+                    (s/optional-key :container-deps) [s/Str]
                     (s/optional-key :local-jar-path) s/Str
                     (s/optional-key :composer-class) s/Str})
 
@@ -32,6 +33,12 @@
 (def source-item {:type s/Str})
 
 (def sources {s/Str source-item})
+
+(def container-item {:image                 s/Str
+                     (s/optional-key :resource-version) s/Str
+                     (s/optional-key :args) {s/Any s/Any}})
+
+(def containers {s/Str container-item})
 
 ;need to have conditionals for bigquery
 (def sink-item {:type s/Str
@@ -50,5 +57,5 @@
 
 (def edges [{:origin s/Str :targets [s/Str]}])
 
-(def base {:config config :cluster cluster :opts opts :provider provider :pipelines pipelines :sources sources :sinks sinks :edges edges})
+(def base {:config config :cluster cluster :opts opts :provider provider :containers containers :pipelines pipelines :sources sources :sinks sinks :edges edges})
 

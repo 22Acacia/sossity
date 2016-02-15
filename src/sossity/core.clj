@@ -43,6 +43,7 @@
   (cond-let
    [item (get (:pipelines a-graph) node)] (assoc item :exec :pipeline)
    [item (get (:sources a-graph) node)] (assoc item :exec :source)
+   [item (get (:containers a-graph) node)] (assoc item :exec :container)
    [item (get (:sinks a-graph) node)] (if (= (:type item) "bq")
                                         (assoc item :exec :pipeline)
                                         (assoc item :exec :sink))))
@@ -120,6 +121,36 @@
         output (assoc (:cluster a-graph) :zone zone)]
     output))
 
+
+(defn container-dependencies [g node conf]
+  "return [{name:ip}] of containers that a dataflow job might depend on for external data"
+  (let [containers (attr g node :container-deps)]
+    (mapv #(assoc {} % (str "${googlecli_container_replica_controller." % ".external_ip}")) containers)
+    )
+  )
+
+
+(defn join-containers [deps]
+  (if (> (count deps) 0)
+    (clojure.string/join (flatten (interpose "," (map #(interpose "|" (first %)) deps)))))
+  )
+
+
+(defn create-container [g node conf]
+  (let [item_name (clojure.string/lower-case node)
+        proj_name (:project conf)
+        resource_version (attr g node :resource-version)
+        zone (:region conf)
+        image (attr g node :image)
+        env_args (attr g node :args)
+        ]
+
+    {item_name {:name item_name :resouce_version [resource_version] :docker_image image :zone zone :proj_name proj_name :env_args env_args}}
+    )
+
+  )
+
+
 (defn create-sink-container [g node conf]
   "Create a kubernetes node to read data from a pubsub and output it somewhere."
   (let [item_name (clojure.string/lower-case (str node "-sink"))
@@ -173,6 +204,7 @@
         output-depends (map #(str pt-prefix "." %) (map #(attr g % :name) output-edges))
         input-depends (str pt-prefix "." (attr g input-edge :name))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
+        container-deps (join-containers (container-dependencies g node conf))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends])
         class-jars (if-let [jar (attr g node :transform-jar)] (str (:remote-libs-path conf) "/" jar))
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
@@ -187,7 +219,7 @@
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
-        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts)
+        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts {:containerDeps container-deps})
         out {:name          node
              :classpath     (clojure.string/join (interpose ":" classpath))
              :class         class
@@ -202,8 +234,7 @@
     {ds {:datasetId ds}}))
 
 (defn create-bq-table [g node]
-  (let [table (attr g node :bigQueryTable)
-        dataset (str "${googlebigquery_dataset." (attr g node :bigQueryDataset) "}")]
+  (let [table (attr g node :bigQueryTable)]
     {table {:tableId    table
             :depends_on [(str "googlebigquery_dataset." (attr g node :bigQueryDataset))]
             :datasetId  (str "${googlebigquery_dataset." (attr g node :bigQueryDataset) ".datasetId}")
@@ -232,11 +263,19 @@
                     (u/filter-node-attrs g :type "bq"))))
 
 (defn output-sinks [g conf]
-  (let [sinks (u/filter-node-attrs g :exec :sink)
+  (let [
+        sinks (u/filter-node-attrs g :exec :sink)
         out-sinks (if-not (get-in conf [:config-file :config :error-buckets])
                     (u/filter-not-node-attrs g :error true sinks)
                     sinks)]
+
     (apply merge (map #(create-sink-container g % conf) out-sinks))))
+
+(defn output-containers [g conf]
+  (let [containers (u/filter-node-attrs g :exec :container)]
+    (apply merge (map #(create-container g % conf) containers))
+    )
+  )
 
 (defn output-subs [g]
   (apply merge (map #(create-subs g %) (u/filter-node-attrs g :type "gcs"))))
@@ -259,6 +298,9 @@
         (add-edges [parent name])
         (add-attr-to-edges :type :error [[parent name]]))))
 
+(defn add-containers [g a-graph]
+  (reduce #(add-nodes %1 (key %2)) g (:containers a-graph)))
+
 (defn add-error-sinks
   "Add error sinks to every non-source item on the graph. Sources don't have errors because they should return a 4xx or 5xx when something gone wrong"
   [g]
@@ -271,6 +313,7 @@
   (let [g (digraph (into {} (map (juxt :origin :targets) (:edges a-graph))))]
     ;decorate nodes
     (-> g
+        (add-containers a-graph)
         (anns a-graph)
         add-error-sinks
         (name-edges conf)))                                    ;return the graph?
@@ -292,7 +335,7 @@
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (create-sources g conf)}
-        controllers {:googlecli_container_replica_controller (output-sinks g conf)}
+        controllers {:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
@@ -308,6 +351,7 @@
 (defn merge-graph-items [g1 g2]
   (-> g1
       (update :opts #(merge-with conj % (:opts g2)))
+      (update :containers #(merge-with conj % (:containers g2)))
       (update :provider #(merge-with conj % (:provider g2)))
       (update :cluster #(merge-with conj % (:cluster g2)))
       (update :config #(merge-with conj % (:config g2)))
