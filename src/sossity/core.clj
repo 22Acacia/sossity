@@ -121,20 +121,14 @@
         output (assoc (:cluster a-graph) :zone zone)]
     output))
 
-
 (defn container-dependencies [g node conf]
   "return [{name:ip}] of containers that a dataflow job might depend on for external data"
   (let [containers (attr g node :container-deps)]
-    (mapv #(assoc {} % (str "${googlecli_container_replica_controller." % ".external_ip}")) containers)
-    )
-  )
-
+    (mapv #(assoc {} % (str "${googlecli_container_replica_controller." % ".external_ip}")) containers)))
 
 (defn join-containers [deps]
   (if (> (count deps) 0)
-    (clojure.string/join (flatten (interpose "," (map #(interpose "|" (first %)) deps)))))
-  )
-
+    (clojure.string/join (flatten (interpose "," (map #(interpose "|" (first %)) deps))))))
 
 (defn create-container [g node conf]
   (let [item_name (clojure.string/lower-case node)
@@ -142,14 +136,9 @@
         resource_version (attr g node :resource-version)
         zone (:region conf)
         image (attr g node :image)
-        env_args (attr g node :args)
-        ]
+        env_args (attr g node :args)]
 
-    {item_name {:name item_name :resouce_version [resource_version] :docker_image image :zone zone :proj_name proj_name :env_args env_args}}
-    )
-
-  )
-
+    {item_name {:name item_name :resouce_version [resource_version] :docker_image image :zone zone :proj_name proj_name :env_args env_args}}))
 
 (defn create-sink-container [g node conf]
   "Create a kubernetes node to read data from a pubsub and output it somewhere."
@@ -263,8 +252,7 @@
                     (u/filter-node-attrs g :type "bq"))))
 
 (defn output-sinks [g conf]
-  (let [
-        sinks (u/filter-node-attrs g :exec :sink)
+  (let [sinks (u/filter-node-attrs g :exec :sink)
         out-sinks (if-not (get-in conf [:config-file :config :error-buckets])
                     (u/filter-not-node-attrs g :error true sinks)
                     sinks)]
@@ -273,9 +261,7 @@
 
 (defn output-containers [g conf]
   (let [containers (u/filter-node-attrs g :exec :container)]
-    (apply merge (map #(create-container g % conf) containers))
-    )
-  )
+    (apply merge (map #(create-container g % conf) containers))))
 
 (defn output-subs [g]
   (apply merge (map #(create-subs g %) (u/filter-node-attrs g :type "gcs"))))
@@ -421,5 +407,5 @@
                   (println "Test output files created"))
                 (do
                   (read-and-create conf (:output opts))
-                    (println "Terraform file created"))))))))
+                  (println "Terraform file created"))))))))
 

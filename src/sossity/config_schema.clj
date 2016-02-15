@@ -50,12 +50,11 @@
                 (s/optional-key :rsys_pass) s/Str
                 (s/optional-key :rsys_user) s/Str
                 (s/optional-key :rsys_table) s/Str
-                (s/optional-key :merge_insert) s/Bool
-                })
+                (s/optional-key :merge_insert) s/Bool})
 
 (def sinks {s/Str sink-item})
 
 (def edges [{:origin s/Str :targets [s/Str]}])
 
-(def base {:config config :cluster cluster :opts opts :provider provider :containers containers :pipelines pipelines :sources sources :sinks sinks :edges edges})
+(def base {:config config :cluster cluster :opts opts :provider provider (s/optional-key :containers) containers :pipelines pipelines :sources sources :sinks sinks :edges edges})
 
