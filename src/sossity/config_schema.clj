@@ -35,7 +35,7 @@
 (def sources {s/Str source-item})
 
 (def container-item {:image                 s/Str
-                     :resource-version      [s/Str]
+                     :resource-version      s/Str
                      (s/optional-key :args) {s/Any s/Any}})
 
 (def containers {s/Str container-item})
