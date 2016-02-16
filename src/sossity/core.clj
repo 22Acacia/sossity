@@ -29,6 +29,7 @@
 (def default-bucket-location "EU")
 (def default-force-bucket-destroy true)
 (def sub-suffix "_sub")
+(def external-port 8080)
 (def gstoragebucket "build-artifacts-public-eu")
 (def default-min-idle 1)
 (def default-max-idle 1)
@@ -139,7 +140,7 @@
         image (attr g node :image)
         env_args (assoc (attr g node :args) :proj_name proj_name)]
 
-    {item_name {:name item_name :container_name sink-container :resource_version [resource_version] :docker_image image :zone zone  :env_args env_args}}))
+    {item_name {:name item_name :container_name sink-container :resource_version [resource_version] :docker_image image :zone zone  :env_args env_args :external_port external-port}}))
 
 (defn create-sink-container [g node conf]
   "Create a kubernetes node to read data from a pubsub and output it somewhere."
