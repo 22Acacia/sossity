@@ -30,7 +30,7 @@
 
 (def pipelines {s/Str pipeline-item})
 
-(def source-item {:type s/Str})
+(def source-item {:type s/Str (s/optional-key :test-input) s/Str})
 
 (def sources {s/Str source-item})
 
