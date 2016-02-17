@@ -337,15 +337,19 @@
 
 (defn merge-graph-items [g1 g2]
   (-> g1
-      (update :opts #(merge-with conj % (:opts g2)))
-      (update :containers #(merge-with conj % (:containers g2)))
-      (update :provider #(merge-with conj % (:provider g2)))
-      (update :cluster #(merge-with conj % (:cluster g2)))
-      (update :config #(merge-with conj % (:config g2)))
-      (update :pipelines #(merge-with conj % (:pipelines g2)))
+      (update :opts #(u/deep-merge-with conj % (:opts g2)))
+      (update :containers #(u/deep-merge-with conj % (:containers g2)))
+      (update :provider #(u/deep-merge-with conj % (:provider g2)))
+      (update :cluster #(u/deep-merge-with conj % (:cluster g2)))
+      (update :config #(u/deep-merge-with conj % (:config g2)))
+      (update :pipelines #(u/deep-merge-with conj % (:pipelines g2)))
       (update :edges #(concat % (:edges g2)))
-      (update :sources #(merge-with conj % (:sources g2)))
-      (update :sinks #(merge-with conj % (:sinks g2)))))
+      (update :sources #(u/deep-merge-with conj % (:sources g2)))
+      (update :sinks #(u/deep-merge-with conj % (:sinks g2)))
+      u/remove-nils
+      )
+
+  )
 
 (defn validate-config [a-graph]
   (s/validate cs/base a-graph))
