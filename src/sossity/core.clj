@@ -134,7 +134,6 @@
 (defn create-container [g node conf]
   (let [item_name (clojure.string/lower-case node)
         proj_name (:project conf)
-
         resource_version (attr g node :resource-version)
         zone (:region conf)
         image (attr g node :image)
@@ -333,7 +332,7 @@
 
 (defn output-terraform-file
   [a-graph file]
-  (spit file (create-terraform-json a-graph) :create true :append false :truncate true))                          ;NOTE -- need to remove first [ and last ]
+  (spit file (create-terraform-json a-graph) :create true :append false :truncate true))
 
 
 (defn merge-graph-items [g1 g2]
