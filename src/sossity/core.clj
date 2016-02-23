@@ -154,11 +154,11 @@
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
         merge_insert (attr g node :merge_insert)
-        #_error_topic #_(attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)
+        error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))
         output {item_name {:name item_name :resource_version [resource_version] :docker_image
                            (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone
                            :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
-                                      :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table #_:error_topic #_error_topic :merge_insert merge_insert}}}]
+                                      :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
     output))
 
 (defn create-sub [g edge]
@@ -190,6 +190,7 @@
         output-topics (map #(attr g % :topic) output-edges)
         error-topic (attr g error-edge :topic)
         input-topic (attr g input-edge :topic)
+        workerMachineType (or (attr g node :workerMachineType) (get-in conf [:config-file :config :default-pipeline-machine-type]))
         class angledream-class
         output-depends (map #(str pt-prefix "." %) (map #(attr g % :name) output-edges))
         input-depends (str pt-prefix "." (attr g input-edge :name))
@@ -209,7 +210,7 @@
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
-        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts {:containerDeps container-deps})
+        optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts {:containerDeps container-deps} {:workerMachineType workerMachineType})
         out {:name          node
              :classpath     (clojure.string/join (interpose ":" classpath))
              :class         class
@@ -334,7 +335,6 @@
   [a-graph file]
   (spit file (create-terraform-json a-graph) :create true :append false :truncate true))
 
-
 (defn merge-graph-items [g1 g2]
   (-> g1
       (update :opts #(merge-with conj % (:opts g2)))
@@ -346,7 +346,6 @@
       (update :edges #(concat % (:edges g2)))
       (update :sources #(merge-with conj % (:sources g2)))
       (update :sinks #(merge-with conj % (:sinks g2)))))
-
 
 (defn validate-config [a-graph]
   (s/validate cs/base a-graph))

@@ -5,9 +5,7 @@
             [loom.attr :refer :all]
             [pandect.algo.md5 :refer :all]
             [clojure.java.io :as f]
-            [clojure.walk :refer [postwalk]]
-
-            )
+            [clojure.walk :refer [postwalk]])
   (:import (java.security MessageDigest)
            (java.nio.file Paths)))
 

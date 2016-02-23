@@ -20,6 +20,7 @@
                :error-buckets             true
                :sink-resource-version     "1"
                :source-resource-version   "1"
+               :default-pipeline-machine-type "n1-standard-1"
                :appengine-gstoragekey     "hxtest-1.0-SNAPSHOT"
                :default-sink-docker-image "gcr.io/hx-test/store-sink"
                :system-jar-info           {:angleddream {:name "angleddream-bundled-0.1-ALPHA.jar"
@@ -95,7 +96,8 @@
                                                                         :batch_size  1000
                                                                         :proj_name   "hx-test"
                                                                         :sub_name    "pipeline1bts-to-sink1bts_sub"
-                                                                        :bucket_name "sink1-bts-test"}}
+                                                                        :bucket_name "sink1-bts-test"
+                                                                        :error_topic "projects/hx-test/topics/sink1bts-to-sink1bts-error"}}
                              :pipeline1bts-error-sink {:name           "pipeline1bts-error-sink"
                                                        :docker_image   "gcr.io/hx-test/store-sink"
                                                        :resource_version ["1"]
@@ -154,21 +156,21 @@
 (deftest test-small-graph
   (let [g (create-parsed-output small-test-gr)]
     (testing "Test the minimum viable graph provider"
-      (is (= sm-provider (:provider g))))
+      (is-nil-diff? sm-provider (:provider g)))
     (testing "Pubsub topics"
-      (is (= sm-pubsub-tops (get-in g [:resource :google_pubsub_topic]))))
+      (is-nil-diff? sm-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
     (testing "Pusub subs"
-      (is (= sm-pubsub-subs (get-in g [:resource :google_pubsub_subscription]))))
+      (is-nil-diff? sm-pubsub-subs (get-in g [:resource :google_pubsub_subscription])))
     (testing "container cluster"
-      (is (= sm-container-cluster (get-in g [:resource :google_container_cluster]))))
+      (is-nil-diff? sm-container-cluster (get-in g [:resource :google_container_cluster])))
     (testing "appengine nodes"
-      (is (= sm-appengine (get-in g [:resource :googleappengine_app]))))
+      (is-nil-diff? sm-appengine (get-in g [:resource :googleappengine_app])))
     (testing "Replica controllers"
-      (is (= sm-replica-controllers (get-in g [:resource :googlecli_container_replica_controller]))))
+      (is-nil-diff? sm-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
     (testing "Storage buckets"
-      (is (= sm-bucket (get-in g [:resource :google_storage_bucket]))))
+      (is-nil-diff? sm-bucket (get-in g [:resource :google_storage_bucket])))
     (testing "Dataflows"
-      (is (= sm-dataflows (get-in g [:resource :googlecli_dataflow]))))))
+      (is-nil-diff? sm-dataflows (get-in g [:resource :googlecli_dataflow])))))
 
 (def big-test-gr
   {:config    {:remote-composer-classpath "/usr/local/lib/angleddream-bundled.jar"
@@ -176,6 +178,7 @@
                :error-buckets             true
                :sink-resource-version     "1"
                :source-resource-version   "1"
+               :default-pipeline-machine-type "n1-standard-1"
                :appengine-gstoragekey     "hxtest-1.0-SNAPSHOT"
                :default-sink-docker-image "gcr.io/hx-test/store-sink"
                :system-jar-info           {:angleddream {:name "angleddream-bundled-0.1-ALPHA.jar"
@@ -205,7 +208,8 @@
                "pipeline3bts"
                {:transform-jar "/usr/local/lib/pipeline3.jar"
                 :pail "build-artifacts-public-eu"
-                :key "orion-transform"}
+                :key "orion-transform"
+                :workerMachineType "n1-standard-4"}
                "orionpipe"
                {:transform-jar "/usr/local/lib/pipeline1.jar"
                 :pail "build-artifacts-public-eu"
@@ -330,6 +334,7 @@
                                               :resource_version ["1"]
                                               :env_args {:num_retries 3
                                                          :batch_size 1000
+                                                         :error_topic "projects/hx-test/topics/sink2bts-to-sink2bts-error"
                                                          :proj_name "hx-test"
                                                          :sub_name "pipeline3bts-to-sink2bts_sub"
                                                          :bucket_name "sink2-bts-test"}}
@@ -342,7 +347,8 @@
                                                          :batch_size 1000
                                                          :proj_name "hx-test"
                                                          :sub_name "pipeline2bts-to-sink1bts_sub"
-                                                         :bucket_name "sink1-bts-test"}}
+                                                         :bucket_name "sink1-bts-test"
+                                                         :error_topic "projects/hx-test/topics/sink1bts-to-sink1bts-error"}}
                               :pipeline1bts-error-sink {:name "pipeline1bts-error-sink"
                                                         :docker_image "gcr.io/hx-test/store-sink"
                                                         :container_name "${google_container_cluster.hx_fstack_cluster.name}"
@@ -401,6 +407,7 @@
                                                :env_args {:num_retries 3
                                                           :batch_size 1000
                                                           :proj_name "hx-test"
+                                                          :error_topic "projects/hx-test/topics/orionsink-to-orionsink-error"
                                                           :sub_name "orionpipe-to-orionsink_sub"
                                                           :bucket_name "orionbucket"}}
                               :pipeline2bts-error-sink {:name "pipeline2bts-error-sink"
@@ -421,6 +428,7 @@
                                               :env_args {:num_retries 3
                                                          :batch_size 1000
                                                          :proj_name "hx-test"
+                                                         :error_topic "projects/hx-test/topics/sink3bts-to-sink3bts-error"
                                                          :sub_name "pipeline2bts-to-sink3bts_sub"
                                                          :bucket_name "sink3-bts-test"}}})
 
@@ -473,7 +481,7 @@
                                                            :outputTopics      "projects/hx-test/topics/pipeline3bts-to-sink2bts"
                                                            :stagingLocation   "gs://hx-test/staging-eu"
                                                            :zone              "europe-west1-c"
-                                                           :workerMachineType "n1-standard-1"
+                                                           :workerMachineType "n1-standard-4"
                                                            :numWorkers        "1"
                                                            :maxNumWorkers     "1"}} :resource_hashes)
                     :pipeline2bts (dissoc {:name          "pipeline2bts"
@@ -534,21 +542,21 @@
 (deftest test-big-graph
   (let [g (create-parsed-output big-test-gr)]
     (testing "Test the minimum viable graph provider"
-      (is (= big-provider (:provider g))))
+      (is-nil-diff? big-provider (:provider g)))
     (testing "Pubsub topics"
-      (is (= big-pubsub-tops (get-in g [:resource :google_pubsub_topic]))))
+      (is-nil-diff? big-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
     (testing "Pusub subs"
-      (is (= big-pubsub-subs (get-in g [:resource :google_pubsub_subscription]))))
+      (is-nil-diff? big-pubsub-subs (get-in g [:resource :google_pubsub_subscription])))
     (testing "container cluster"
-      (is (= big-container-cluster (get-in g [:resource :google_container_cluster]))))
+      (is-nil-diff? big-container-cluster (get-in g [:resource :google_container_cluster])))
     (testing "app engine"
-      (is (= big-appengine (get-in g [:resource :googleappengine_app]))))
+      (is-nil-diff? big-appengine (get-in g [:resource :googleappengine_app])))
     (testing "Replica controllers"
-      (is (= big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller]))))
+      (is-nil-diff? big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
     (testing "Storage buckets"
-      (is (= big-bucket (get-in g [:resource :google_storage_bucket]))))
+      (is-nil-diff? big-bucket (get-in g [:resource :google_storage_bucket])))
     (testing "Dataflows"
-      (is (= big-dataflows (get-in g [:resource :googlecli_dataflow]))))))
+      (is-nil-diff? big-dataflows (get-in g [:resource :googlecli_dataflow])))))
 
 (def bq-graph
   (-> big-test-gr
