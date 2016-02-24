@@ -12,11 +12,12 @@
              :appengine-gstoragekey s/Str
              :default-sink-docker-image s/Str
              :system-jar-info {:angleddream sys-jar :sossity sys-jar}
+             :default-pipeline-machine-type s/Str
              (s/optional-key :test-output) s/Str})
 
 (def cluster {:name s/Str :initial_node_count s/Int :master_auth {:username s/Str :password s/Str} :node_config {:oauth_scopes [s/Str] :machine_type s/Str}})
 
-(def opts {:maxNumWorkers   s/Int :numWorkers s/Int :zone s/Str :workerMachineType s/Str
+(def opts {:maxNumWorkers   s/Int :numWorkers s/Int :zone s/Str
            :stagingLocation s/Str})
 
 (def provider {:credentials s/Str :project s/Str})
@@ -24,8 +25,10 @@
 (def pipeline-item {:transform-jar                   s/Str
                     :pail                                s/Str
                     :key s/Str
+                    (s/optional-key :workerMachineType) s/Str
                     (s/optional-key :container-deps) [s/Str]
                     (s/optional-key :local-jar-path) s/Str
+                    (s/optional-key :error-out) s/Bool
                     (s/optional-key :composer-class) s/Str})
 
 (def pipelines {s/Str pipeline-item})
@@ -36,6 +39,7 @@
 
 (def container-item {:image                 s/Str
                      :resource-version      s/Str
+                     (s/optional-key :error-out) s/Bool
                      (s/optional-key :args) {s/Any s/Any}})
 
 (def containers {s/Str container-item})
@@ -45,6 +49,7 @@
                 (s/optional-key :bucket) s/Str
                 (s/optional-key :bigQueryDataset) s/Str
                 (s/optional-key :bigQueryTable) s/Str
+                (s/optional-key :error-out) s/Bool
                 (s/optional-key :bigQuerySchema) s/Str
                 (s/optional-key :sink_type) s/Str
                 (s/optional-key :rsys_pass) s/Str

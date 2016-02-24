@@ -131,6 +131,11 @@
   (if (> (count deps) 0)
     (clojure.string/join (flatten (interpose "," (map #(interpose "|" (first %)) deps))))))
 
+(defn parent-error-enabled? [g node]
+  (let [parent (first (predecessors g node))]
+    (or (attr g parent :error-out)))
+  )
+
 (defn create-container [g node conf]
   (let [item_name (clojure.string/lower-case node)
         proj_name (:project conf)
@@ -253,13 +258,17 @@
   (apply merge (map #(create-bq-table g %)
                     (u/filter-node-attrs g :type "bq"))))
 
-(defn output-sinks [g conf]
-  (let [sinks (u/filter-node-attrs g :exec :sink)
-        out-sinks (if-not (get-in conf [:config-file :config :error-buckets])
-                    (u/filter-not-node-attrs g :error true sinks)
-                    sinks)]
+(defn out-sinks [g]
+  (let [sinks (u/filter-node-attrs g :exec :sink) ]
+    (filter #(or (not (attr g % :error))
+                (and (attr g % :error-out) (parent-error-enabled? g %))
+                ) sinks)
+    )
+  )
 
-    (apply merge (map #(create-sink-container g % conf) out-sinks))))
+
+(defn output-sinks [g conf]
+  (apply merge (map #(create-sink-container g % conf) (u/filter-node-attrs g :exec :sink))))
 
 (defn output-containers [g conf]
   (let [containers (u/filter-node-attrs g :exec :container)]
@@ -283,8 +292,10 @@
         (add-attr name :exec :sink)
         (add-attr name :bucket name)
         (add-attr name :error true)
+       #_(add-attr name :run (parent-error-enabled? g name))
         (add-edges [parent name])
-        (add-attr-to-edges :type :error [[parent name]]))))
+        (add-attr-to-edges :type :error [[parent name]]))
+    ))
 
 (defn add-containers [g a-graph]
   (reduce #(add-nodes %1 (key %2)) g (:containers a-graph)))
