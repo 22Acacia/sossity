@@ -27,7 +27,7 @@
 (def sink-buffer-size 1000)
 (def sink-container "${google_container_cluster.hx_fstack_cluster.name}")
 (def default-bucket-location "EU")
-(def default-force-bucket-destroy true)
+(def default-force-bucket-destroy false)
 (def sub-suffix "_sub")
 (def external-port 8080)
 (def gstoragebucket "build-artifacts-public-eu")
