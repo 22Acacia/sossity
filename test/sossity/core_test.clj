@@ -120,10 +120,10 @@
                                                                         :bucket_name "sink1bts-error"}}})
 
 (def sm-bucket {:pipeline1bts-error {:name          "pipeline1bts-error"
-                                     :force_destroy false
+                                     
                                      :location      "EU"}
-                :sink1-bts-test     {:name "sink1-bts-test" :force_destroy false :location "EU"}
-                :sink1bts-error     {:name "sink1bts-error" :force_destroy false :location "EU"}})
+                :sink1-bts-test     {:name "sink1-bts-test"  :location "EU"}
+                :sink1bts-error     {:name "sink1bts-error"  :location "EU"}})
 
 (def sm-appengine {:stream1bts {:moduleName     "stream1bts"
                                 :version        "init"
@@ -432,24 +432,24 @@
                                                          :sub_name "pipeline2bts-to-sink3bts_sub"
                                                          :bucket_name "sink3-bts-test"}}})
 
-(def big-bucket  {:sink1bts-error {:name "sink1bts-error" :force_destroy false :location "EU"}
-                  :sink3-bts-test {:name "sink3-bts-test" :force_destroy false :location "EU"}
+(def big-bucket  {:sink1bts-error {:name "sink1bts-error"  :location "EU"}
+                  :sink3-bts-test {:name "sink3-bts-test"  :location "EU"}
                   :pipeline2bts-error {:name "pipeline2bts-error"
-                                       :force_destroy false
+                                       
                                        :location "EU"}
-                  :sink3bts-error {:name "sink3bts-error" :force_destroy false :location "EU"}
-                  :sink2-bts-test {:name "sink2-bts-test" :force_destroy false :location "EU"}
-                  :orionbucket {:name "orionbucket" :force_destroy false :location "EU"}
+                  :sink3bts-error {:name "sink3bts-error"  :location "EU"}
+                  :sink2-bts-test {:name "sink2-bts-test"  :location "EU"}
+                  :orionbucket {:name "orionbucket"  :location "EU"}
                   :pipeline3bts-error {:name "pipeline3bts-error"
-                                       :force_destroy false
+                                       
                                        :location "EU"}
                   :pipeline1bts-error {:name "pipeline1bts-error"
-                                       :force_destroy false
+                                       
                                        :location "EU"}
-                  :orionsink-error {:name "orionsink-error" :force_destroy false :location "EU"}
-                  :sink1-bts-test {:name "sink1-bts-test" :force_destroy false :location "EU"}
-                  :sink2bts-error {:name "sink2bts-error" :force_destroy false :location "EU"}
-                  :orionpipe-error {:name "orionpipe-error" :force_destroy false :location "EU"}})
+                  :orionsink-error {:name "orionsink-error"  :location "EU"}
+                  :sink1-bts-test {:name "sink1-bts-test"  :location "EU"}
+                  :sink2bts-error {:name "sink2bts-error"  :location "EU"}
+                  :orionpipe-error {:name "orionpipe-error"  :location "EU"}})
 
 (def big-dataflows {:pipeline1bts (dissoc {:name          "pipeline1bts"
                                            :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib//usr/local/lib/pipeline1.jar"
@@ -597,7 +597,7 @@
 (def bq-tables {:hx-test {:tableId    "hx-test" :datasetId "${googlebigquery_dataset.hx-test.datasetId}"
                           :schemaFile "schema.json" :depends_on ["googlebigquery_dataset.hx-test"]}})
 
-(def bq-buckets (-> big-bucket (assoc :orionbq-error {:name "orionbq-error", :force_destroy false, :location "EU"})))
+(def bq-buckets (-> big-bucket (assoc :orionbq-error {:name "orionbq-error", , :location "EU"})))
 
 (def bq-replica-controllers (-> big-replica-controllers
                                 (assoc :orionbq-error-sink
