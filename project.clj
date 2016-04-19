@@ -20,6 +20,7 @@
                  [prismatic/schema "1.0.4"]
                  [pandect "0.5.4"]
                  [digest "1.4.4"]
+                 [com.rpl/specter "0.9.2"]
                  [clj-time "0.11.0"]]
 
   :plugins [[lein-cljfmt "0.3.0"]]
