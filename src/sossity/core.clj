@@ -38,7 +38,9 @@
 
 (defn source-topic-name [topic] topic)
 
-(defn new-topic-name [in out] (str in "-to-" out))
+#_(defn new-topic-name [in out] (str in "-to-" out))
+
+(defn new-topic-name [in] (str in "-out"))
 
 (defn item-metadata [node a-graph]
   (cond-let
@@ -87,7 +89,7 @@
   [g [in out]]
   (if (= 0 (in-degree g in))
     (source-topic-name in)
-    (new-topic-name in out)))
+    (new-topic-name in)))
 
 (defn topic-edge
   "combine edge name and graph project with 2 strings to demonstrate varaible args"
