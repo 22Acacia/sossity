@@ -146,6 +146,9 @@
 
     {item_name {:name item_name :container_name sink-container :resource_version [resource_version] :docker_image image :zone zone  :env_args env_args :external_port external-port}}))
 
+
+
+
 (defn create-sink-container [g node conf]
   "Create a kubernetes node to read data from a pubsub and output it somewhere."
   (let [item_name (clojure.string/lower-case (str node "-sink"))
@@ -159,9 +162,11 @@
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
         merge_insert (attr g node :merge_insert)
+        depends-on [(if bucket_name (str "google_storage_bucket." bucket_name)) (str "google_pubsub_subscription." sub_name)]
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))
-        output {item_name {:name item_name :resource_version [resource_version] :docker_image
-                           (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone
+        output {item_name {:name item_name :resource_version [resource_version]
+                           :depends_on depends-on
+                           :docker_image (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone
                            :env_args {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
                                       :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
     output))
@@ -177,14 +182,16 @@
 
 (defn create-bucket [g node]
   (if (and (= "gcs" (attr g node :type)) (attr g node :bucket))
-    {(attr g node :bucket) {:name (attr g node :bucket) :force_destroy default-force-bucket-destroy :location default-bucket-location}}))
+    {(attr g node :bucket) {:name (attr g node :bucket) :force_destroy (or (attr g node :force_destroy) default-force-bucket-destroy) :location default-bucket-location}}))
 
 (defn create-appengine-module
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
-  {node {:moduleName node :version "init" :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
-         :topicName  (attr g (first (out-edges g node)) :topic)}})
+  {node {:moduleName  node :version "init"
+         :depends_on  (str "google_pubsub_topic." node)
+         :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
+                      {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+         :topicName   (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
