@@ -40,7 +40,14 @@
 
 #_(defn new-topic-name [in out] (str in "-to-" out))
 
-(defn new-topic-name [in] (str in "-out"))
+(defn new-topic-name [g in]
+  (if (= (attr g in :exec) :sink)
+    (str in "-error-out")
+    (str in "-out")))
+
+(defn error-topic-name [g in]
+  (str in "-error-out"))
+
 
 (defn item-metadata [node a-graph]
   (cond-let
@@ -89,7 +96,11 @@
   [g [in out]]
   (if (= 0 (in-degree g in))
     (source-topic-name in)
-    (new-topic-name in)))
+    (if (attr g out :error)
+      (error-topic-name g in)
+      (new-topic-name g in)
+      )
+    ))
 
 (defn topic-edge
   "combine edge name and graph project with 2 strings to demonstrate varaible args"
