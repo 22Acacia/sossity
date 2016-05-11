@@ -212,7 +212,7 @@
         input-edge (first (u/filter-not-edge-attrs g :type :error (in-edges g node)))
         error-edge (first (u/filter-edge-attrs g :type :error (out-edges g node)))
         predecessor-depends (predecessor-depends g node)
-        output-topics (map #(attr g % :topic) output-edges)
+        output-topic (attr g (first output-edges) :topic)
         error-topic (attr g error-edge :topic)
         input-topic (attr g input-edge :topic)
         workerMachineType (or (attr g node :workerMachineType) (get-in conf [:config-file :config :default-pipeline-machine-type]))
@@ -231,7 +231,7 @@
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
 }
         opt-mapb (if-not (= (attr g node :type) "bq")
-                   (assoc opt-map :outputTopics (clojure.string/join (interpose "," output-topics)))
+                   (assoc opt-map :outputTopics output-topic)
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
