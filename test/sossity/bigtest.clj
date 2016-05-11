@@ -24,10 +24,32 @@
  :containers {"riidb" {:image "gcr.io/hx-trial/responsys-resource:latest" :resource-version "v5"}}
  :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
  :pipelines {"pipeline1bts"
-             {:transform-jar "pipeline3.jar"
+             {:transform-jar "/usr/local/lib/pipeline1.jar"
+              :pail          "build-artifacts-public-eu"
+              :key           "orion-transform"}
+             "pipeline2bts"
+             {:transform-jar "/usr/local/lib/pipeline2.jar"
+              :pail          "build-artifacts-public-eu"
+              :key           "orion-transform"}
+             "pipeline3bts"
+             {:transform-jar     "/usr/local/lib/pipeline3.jar"
+              :pail              "build-artifacts-public-eu"
+              :key               "orion-transform"
+              :workerMachineType "n1-standard-4"}
+             "orionpipe"
+             {:transform-jar "/usr/local/lib/pipeline1.jar"
               :pail          "build-artifacts-public-eu"
               :key           "orion-transform"}}
- :sources   {"stream1bts" {:type "kub"}}
- :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
+ :sources   {"stream1bts" {:type "kub"}
+             "stream2bts" {:type "kub"}
+             "orion"      {:type "kub"}}
+ :sinks     {"sink1bts"  {:type "gcs" :bucket "sink1-bts-test"}
+             "sink2bts"  {:type "gcs" :bucket "sink2-bts-test"}
+             "sink3bts"  {:type "gcs" :bucket "sink3-bts-test"}
+             "orionsink" {:type "gcs" :bucket "orionbucket"}}
  :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
-             {:origin "pipeline1bts" :targets ["sink1bts"]}]}
+             {:origin "pipeline1bts" :targets ["pipeline2bts" "pipeline3bts"]}
+             {:origin "pipeline2bts" :targets ["sink1bts" "sink3bts"]}
+             {:origin "orion" :targets ["orionpipe"]}
+             {:origin "orionpipe" :targets ["orionsink"]}
+             {:origin "pipeline3bts" :targets ["sink2bts"]}]}
