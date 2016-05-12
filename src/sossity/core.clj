@@ -223,7 +223,7 @@
         output-depends (if output-edge (str pt-prefix "." (attr g output-edge :name)))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
         container-deps (join-containers (container-dependencies g node conf))
-        depends-on (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends])
+        depends-on (remove nil? (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends]))
         class-jars (if-let [jar (attr g node :transform-jar)] (str (:remote-libs-path conf) "/" jar))
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
                                  (or class-jars)])
@@ -361,6 +361,7 @@
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
         out (clojure.string/trim (generate-string filtered-out {:pretty true}))]
+
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
 
