@@ -31,3 +31,5 @@
  :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
  :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
              {:origin "pipeline1bts" :targets ["sink1bts"]}]}
+
+

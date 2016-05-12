@@ -175,7 +175,9 @@
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
         merge_insert (attr g node :merge_insert)
-        depends-on [(if bucket_name (str "google_storage_bucket." bucket_name)) (str "google_pubsub_subscription." sub_name)]
+        depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
+                            (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
+                                            s))
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))
         output {item_name {:name item_name :resource_version [resource_version]
                            :depends_on depends-on
@@ -208,17 +210,17 @@
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
-  (let [output-edges (u/filter-not-edge-attrs g :type :error (out-edges g node))
-        input-edge (first (u/filter-not-edge-attrs g :type :error (in-edges g node)))
+  (let [output-edge (first (u/filter-not-edge-attrs g :type :error (out-edges g node)))
+        input-edges (u/filter-not-edge-attrs g :type :error (in-edges g node))
         error-edge (first (u/filter-edge-attrs g :type :error (out-edges g node)))
         predecessor-depends (predecessor-depends g node)
-        output-topic (attr g (first output-edges) :topic)
+        output-topic (if output-edge (attr g output-edge :topic))
         error-topic (attr g error-edge :topic)
-        input-topic (attr g input-edge :topic)
+        input-topics  (map #(attr g % :topic) input-edges)
         workerMachineType (or (attr g node :workerMachineType) (get-in conf [:config-file :config :default-pipeline-machine-type]))
         class angledream-class
-        output-depends (map #(str pt-prefix "." %) (map #(attr g % :name) output-edges))
-        input-depends (str pt-prefix "." (attr g input-edge :name))
+        input-depends (map #(str pt-prefix "." %) (map #(attr g % :name) input-edges))
+        output-depends (if output-edge (str pt-prefix "." (attr g output-edge :name)))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
         container-deps (join-containers (container-dependencies g node conf))
         depends-on (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends])
@@ -226,7 +228,7 @@
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
                                  (or class-jars)])
         resource-hashes (filter some? (map #(u/hash-jar %) classpath))
-        opt-map {:pubsubTopic       input-topic
+        opt-map {:pubsubTopic       (clojure.string/join (interpose "," input-topics))
                  :pipelineName      node
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
 }

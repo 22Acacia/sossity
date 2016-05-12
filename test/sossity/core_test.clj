@@ -61,20 +61,9 @@
                                    :project     "hx-test"
                                    :region      "europe-west1-c"}})
 (def sm-pubsub-tops
-  {:stream1bts {:name "stream1bts"}
-   :pipeline1bts-to-pipeline1bts-error {:name "pipeline1bts-to-pipeline1bts-error"}
-   :pipeline1bts-to-sink1bts {:name "pipeline1bts-to-sink1bts"}
-   :sink1bts-to-sink1bts-error {:name "sink1bts-to-sink1bts-error"}})
+  {:sink1bts-error-out {:name "sink1bts-error-out"} :pipeline1bts-out {:name "pipeline1bts-out"} :pipeline1bts-error-out {:name "pipeline1bts-error-out"} :stream1bts {:name "stream1bts"}})
 
-(def sm-pubsub-subs  {:pipeline1bts-to-pipeline1bts-error_sub {:name "pipeline1bts-to-pipeline1bts-error_sub"
-                                                               :topic "pipeline1bts-to-pipeline1bts-error"
-                                                               :depends_on ["google_pubsub_topic.pipeline1bts-to-pipeline1bts-error"]}
-                      :pipeline1bts-to-sink1bts_sub {:name "pipeline1bts-to-sink1bts_sub"
-                                                     :topic "pipeline1bts-to-sink1bts"
-                                                     :depends_on ["google_pubsub_topic.pipeline1bts-to-sink1bts"]}
-                      :sink1bts-to-sink1bts-error_sub {:name "sink1bts-to-sink1bts-error_sub"
-                                                       :topic "sink1bts-to-sink1bts-error"
-                                                       :depends_on ["google_pubsub_topic.sink1bts-to-sink1bts-error"]}})
+(def sm-pubsub-subs  {:sink1bts-error-out_sub {:name "sink1bts-error-out_sub", :topic "sink1bts-error-out", :depends_on ["google_pubsub_topic.sink1bts-error-out"]}, :pipeline1bts-out_sub {:name "pipeline1bts-out_sub", :topic "pipeline1bts-out", :depends_on ["google_pubsub_topic.pipeline1bts-out"]}, :pipeline1bts-error-out_sub {:name "pipeline1bts-error-out_sub", :topic "pipeline1bts-error-out", :depends_on ["google_pubsub_topic.pipeline1bts-error-out"]}})
 
 (def sm-container-cluster {:hx_fstack_cluster {:name "hxhstack"
                                                :initial_node_count 3
@@ -595,10 +584,10 @@
                                   :zone "europe-west1-c"
                                   :workerMachineType "n1-standard-1"
                                   :bigQueryTable "hx-test"
-                                  :errorPipelineName "projects/hx-test/topics/orionbq-to-orionbq-error"
+                                  :errorPipelineName "projects/hx-test/topics/orionbq-error-out"
                                   :bigQueryDataset "hx-test"
                                   :bigQuerySchema "schema.json"
-                                  :pubsubTopic "projects/hx-test/topics/orionpipe-to-orionbq"
+                                  :pubsubTopic "projects/hx-test/topics/orionpipe-out"
                                   :numWorkers "1"
                                   :pipelineName "orionbq"
                                   :maxNumWorkers "1"}})
