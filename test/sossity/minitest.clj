@@ -23,13 +23,10 @@
              :stagingLocation "gs://hx-test/staging-eu"}
  :containers {"riidb" {:image "gcr.io/hx-trial/responsys-resource:latest" :resource-version "v5"}}
  :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
- :pipelines {"pipeline1bts"
-             {:transform-jar "pipeline3.jar"
-              :pail          "build-artifacts-public-eu"
-              :key           "orion-transform"}}
+ :pipelines {}
  :sources   {"stream1bts" {:type "kub"}}
  :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
- :edges     [{:origin "stream1bts" :targets ["pipeline1bts"]}
-             {:origin "pipeline1bts" :targets ["sink1bts"]}]}
+ :edges     [{:origin "stream1bts" :targets ["sink1bts"]}
+             ]}
 
 
