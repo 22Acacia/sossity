@@ -552,7 +552,7 @@
 
 (def big-appengine {:stream1bts {:moduleName       "stream1bts",
                                  :version          "init",
-                                 :depends_on       "google_pubsub_topic.stream1bts",
+                                 :depends_on       ["google_pubsub_topic.stream1bts"],
                                  :gstorageKey      "hxtest-1.0-SNAPSHOT",
                                  :resource_version ["1"],
                                  :gstorageBucket   "build-artifacts-public-eu",
