@@ -134,20 +134,20 @@
                                      :external_port 8080}})
 
 (def sm-bucket {:pipeline1bts-error {:name "pipeline1bts-error", :location "EU"},
-               :sink1-bts-test {:name "sink1-bts-test", :location "EU"},
-               :sink1bts-error {:name "sink1bts-error", :location "EU"}})
+                :sink1-bts-test {:name "sink1-bts-test", :location "EU"},
+                :sink1bts-error {:name "sink1bts-error", :location "EU"}})
 
-(def sm-appengine {:stream1bts {:moduleName     "stream1bts"
-                                :version        "init"
-                                :gstorageKey    "hxtest-1.0-SNAPSHOT"
+(def sm-appengine {:stream1bts {:moduleName       "stream1bts"
+                                :version          "init"
+                                :gstorageKey      "hxtest-1.0-SNAPSHOT"
                                 :resource_version ["1"]
-                                :depends_on "google_pubsub_topic.stream1bts"
-                                :gstorageBucket "build-artifacts-public-eu"
-                                :scaling        {:minIdleInstances  1
-                                                 :maxIdleInstances  1
-                                                 :minPendingLatency "3s"
-                                                 :maxPendingLatency "6s"}
-                                :topicName      "projects/hx-test/topics/stream1bts"}})
+                                :depends_on       ["google_pubsub_topic.stream1bts"]
+                                :gstorageBucket   "build-artifacts-public-eu"
+                                :scaling          {:minIdleInstances  1
+                                                   :maxIdleInstances  1
+                                                   :minPendingLatency "3s"
+                                                   :maxPendingLatency "6s"}
+                                :topicName        "projects/hx-test/topics/stream1bts"}})
 
 (def sm-dataflows {:pipeline1bts (dissoc {:name          "pipeline1bts",
                                           :classpath     "/usr/local/lib/angleddream-bundled.jar:/usr/local/lib/pipeline3.jar",
@@ -550,28 +550,28 @@
                                                            :pipelineName "orionpipe",
                                                            :maxNumWorkers 1}} :resource_hashes)})
 
-(def big-appengine {:stream1bts {:moduleName "stream1bts",
-                                 :version "init",
-                                 :depends_on "google_pubsub_topic.stream1bts",
-                                 :gstorageKey "hxtest-1.0-SNAPSHOT",
+(def big-appengine {:stream1bts {:moduleName       "stream1bts",
+                                 :version          "init",
+                                 :depends_on       "google_pubsub_topic.stream1bts",
+                                 :gstorageKey      "hxtest-1.0-SNAPSHOT",
                                  :resource_version ["1"],
-                                 :gstorageBucket "build-artifacts-public-eu",
-                                 :scaling {:minIdleInstances 1,
-                                           :maxIdleInstances 1,
-                                           :minPendingLatency "3s",
-                                           :maxPendingLatency "6s"},
-                                 :topicName "projects/hx-test/topics/stream1bts"},
-                    :orion {:moduleName "orion",
-                            :version "init",
-                            :depends_on "google_pubsub_topic.orion",
-                            :gstorageKey "hxtest-1.0-SNAPSHOT",
-                            :resource_version ["1"],
-                            :gstorageBucket "build-artifacts-public-eu",
-                            :scaling {:minIdleInstances 1,
-                                      :maxIdleInstances 1,
-                                      :minPendingLatency "3s",
-                                      :maxPendingLatency "6s"},
-                            :topicName "projects/hx-test/topics/orion"}})
+                                 :gstorageBucket   "build-artifacts-public-eu",
+                                 :scaling          {:minIdleInstances  1,
+                                                    :maxIdleInstances  1,
+                                                    :minPendingLatency "3s",
+                                                    :maxPendingLatency "6s"},
+                                 :topicName        "projects/hx-test/topics/stream1bts"},
+                    :orion      {:moduleName       "orion",
+                                 :version          "init",
+                                 :depends_on       ["google_pubsub_topic.orion"],
+                                 :gstorageKey      "hxtest-1.0-SNAPSHOT",
+                                 :resource_version ["1"],
+                                 :gstorageBucket   "build-artifacts-public-eu",
+                                 :scaling          {:minIdleInstances  1,
+                                                    :maxIdleInstances  1,
+                                                    :minPendingLatency "3s",
+                                                    :maxPendingLatency "6s"},
+                                 :topicName        "projects/hx-test/topics/orion"}})
 
 (deftest test-big-graph
   (let [g (create-parsed-output big-test-gr)]

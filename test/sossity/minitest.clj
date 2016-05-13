@@ -26,7 +26,5 @@
  :pipelines {}
  :sources   {"stream1bts" {:type "kub"}}
  :sinks     {"sink1bts" {:type "gcs" :bucket "sink1-bts-test"}}
- :edges     [{:origin "stream1bts" :targets ["sink1bts"]}
-             ]}
-
+ :edges     [{:origin "stream1bts" :targets ["sink1bts"]}]}
 
