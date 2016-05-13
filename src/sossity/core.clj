@@ -38,7 +38,16 @@
 
 (defn source-topic-name [topic] topic)
 
-(defn new-topic-name [in out] (str in "-to-" out))
+#_(defn new-topic-name [in out] (str in "-to-" out))
+
+(defn new-topic-name [g in]
+  (if (= (attr g in :exec) :sink)
+    (str in "-error-out")
+    (str in "-out")))
+
+(defn error-topic-name [g in]
+  (str in "-error-out"))
+
 
 (defn item-metadata [node a-graph]
   (cond-let
@@ -87,7 +96,11 @@
   [g [in out]]
   (if (= 0 (in-degree g in))
     (source-topic-name in)
-    (new-topic-name in out)))
+    (if (attr g out :error)
+      (error-topic-name g in)
+      (new-topic-name g in)
+      )
+    ))
 
 (defn topic-edge
   "combine edge name and graph project with 2 strings to demonstrate varaible args"
@@ -162,7 +175,9 @@
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
         merge_insert (attr g node :merge_insert)
-        depends-on [(if bucket_name (str "google_storage_bucket." bucket_name)) (str "google_pubsub_subscription." sub_name)]
+        depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
+                            (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
+                                            s))
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))
         output {item_name {:name item_name :resource_version [resource_version]
                            :depends_on depends-on
@@ -195,30 +210,30 @@
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
-  (let [output-edges (u/filter-not-edge-attrs g :type :error (out-edges g node))
-        input-edge (first (u/filter-not-edge-attrs g :type :error (in-edges g node)))
+  (let [output-edge (first (u/filter-not-edge-attrs g :type :error (out-edges g node)))
+        input-edges (u/filter-not-edge-attrs g :type :error (in-edges g node))
         error-edge (first (u/filter-edge-attrs g :type :error (out-edges g node)))
         predecessor-depends (predecessor-depends g node)
-        output-topics (map #(attr g % :topic) output-edges)
+        output-topic (if output-edge (attr g output-edge :topic))
         error-topic (attr g error-edge :topic)
-        input-topic (attr g input-edge :topic)
+        input-topics  (map #(attr g % :topic) input-edges)
         workerMachineType (or (attr g node :workerMachineType) (get-in conf [:config-file :config :default-pipeline-machine-type]))
         class angledream-class
-        output-depends (map #(str pt-prefix "." %) (map #(attr g % :name) output-edges))
-        input-depends (str pt-prefix "." (attr g input-edge :name))
+        input-depends (map #(str pt-prefix "." %) (map #(attr g % :name) input-edges))
+        output-depends (if output-edge (str pt-prefix "." (attr g output-edge :name)))
         error-depends (if error-edge (str pt-prefix "." (attr g error-edge :name)))
         container-deps (join-containers (container-dependencies g node conf))
-        depends-on (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends])
+        depends-on (remove nil? (flatten [(flatten [output-depends predecessor-depends error-depends]) input-depends]))
         class-jars (if-let [jar (attr g node :transform-jar)] (str (:remote-libs-path conf) "/" jar))
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
                                  (or class-jars)])
         resource-hashes (filter some? (map #(u/hash-jar %) classpath))
-        opt-map {:pubsubTopic       input-topic
+        opt-map {:pubsubTopic       (clojure.string/join (interpose "," input-topics))
                  :pipelineName      node
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
 }
         opt-mapb (if-not (= (attr g node :type) "bq")
-                   (assoc opt-map :outputTopics (clojure.string/join (interpose "," output-topics)))
+                   (assoc opt-map :outputTopics output-topic)
                    opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
@@ -346,6 +361,7 @@
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
         out (clojure.string/trim (generate-string filtered-out {:pretty true}))]
+
     (str "{" (subs out 1 (- (count out) 2)) "}")))                        ;trim first [ and last ] from json
 
 
