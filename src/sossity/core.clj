@@ -48,7 +48,6 @@
 (defn error-topic-name [g in]
   (str in "-error-out"))
 
-
 (defn item-metadata [node a-graph]
   (cond-let
    [item (get (:pipelines a-graph) node)] (assoc item :exec :pipeline)
@@ -98,9 +97,7 @@
     (source-topic-name in)
     (if (attr g out :error)
       (error-topic-name g in)
-      (new-topic-name g in)
-      )
-    ))
+      (new-topic-name g in))))
 
 (defn topic-edge
   "combine edge name and graph project with 2 strings to demonstrate varaible args"
@@ -146,8 +143,7 @@
 
 (defn parent-error-enabled? [g node]
   (let [parent (first (predecessors g node))]
-    (or (attr g parent :error-out)))
-  )
+    (or (attr g parent :error-out))))
 
 (defn create-container [g node conf]
   (let [item_name (clojure.string/lower-case node)
@@ -158,9 +154,6 @@
         env_args (assoc (attr g node :args) :proj_name proj_name)]
 
     {item_name {:name item_name :container_name sink-container :resource_version [resource_version] :docker_image image :zone zone  :env_args env_args :external_port external-port}}))
-
-
-
 
 (defn create-sink-container [g node conf]
   "Create a kubernetes node to read data from a pubsub and output it somewhere."
@@ -176,8 +169,8 @@
         rsys_user (attr g node :rsys_user)
         merge_insert (attr g node :merge_insert)
         depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
-                            (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
-                                            s))
+                     (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
+                         s))
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))
         output {item_name {:name item_name :resource_version [resource_version]
                            :depends_on depends-on
@@ -203,9 +196,9 @@
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
   {node {:moduleName  node :version "init"
-         :depends_on  (str "google_pubsub_topic." node)
+         :depends_on  [(str "google_pubsub_topic." node)]
          :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-                      {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName   (attr g (first (out-edges g node)) :topic)}})
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
@@ -281,13 +274,9 @@
                     (u/filter-node-attrs g :type "bq"))))
 
 (defn out-sinks [g]
-  (let [sinks (u/filter-node-attrs g :exec :sink) ]
+  (let [sinks (u/filter-node-attrs g :exec :sink)]
     (filter #(or (not (attr g % :error))
-                (and (attr g % :error-out) (parent-error-enabled? g %))
-                ) sinks)
-    )
-  )
-
+                 (and (attr g % :error-out) (parent-error-enabled? g %))) sinks)))
 
 (defn output-sinks [g conf]
   (apply merge (map #(create-sink-container g % conf) (u/filter-node-attrs g :exec :sink))))
@@ -314,10 +303,9 @@
         (add-attr name :exec :sink)
         (add-attr name :bucket name)
         (add-attr name :error true)
-       #_(add-attr name :run (parent-error-enabled? g name))
+        #_(add-attr name :run (parent-error-enabled? g name))
         (add-edges [parent name])
-        (add-attr-to-edges :type :error [[parent name]]))
-    ))
+        (add-attr-to-edges :type :error [[parent name]]))))
 
 (defn add-containers [g a-graph]
   (reduce #(add-nodes %1 (key %2)) g (:containers a-graph)))
