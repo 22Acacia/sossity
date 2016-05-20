@@ -221,7 +221,7 @@
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
                                  (or class-jars)])
         resource-hashes (filter some? (map #(u/hash-jar %) classpath))
-        string-hashes (map (comp #(clojure.string/join "," %) vector) classpath resource-hashes)
+        string-hashes (map (comp #(clojure.string/join "," %) vector) (str classpath) resource-hashes)
         opt-map {:pubsubTopic       (clojure.string/join (interpose "," input-topics))
                  :pipelineName      node
 
