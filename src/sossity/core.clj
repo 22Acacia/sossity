@@ -221,13 +221,16 @@
         classpath (filter some? [(get-in conf [:config-file :config :remote-composer-classpath])
                                  (or class-jars)])
         resource-hashes (filter some? (map #(u/hash-jar %) classpath))
+        string-hashes (map (comp #(clojure.string/join "," %) vector) classpath resource-hashes)
         opt-map {:pubsubTopic       (clojure.string/join (interpose "," input-topics))
                  :pipelineName      node
+
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
 }
-        opt-mapb (if-not (= (attr g node :type) "bq")
+        opt-map (if-not (= (attr g node :type) "bq")
                    (assoc opt-map :outputTopics output-topic)
                    opt-map)
+        opt-mapb (if-not (empty? resource-hashes) (assoc opt-map :stringHashes string-hashes) opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
         optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts {:containerDeps container-deps} {:workerMachineType workerMachineType})
