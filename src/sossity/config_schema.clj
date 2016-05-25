@@ -10,7 +10,7 @@
              :sink-resource-version s/Str
              :source-resource-version s/Str
              :appengine-gstoragekey s/Str
-             :default-sink-docker-image s/Str
+             :appengine-sinkkey s/Str
              :system-jar-info {:angleddream sys-jar :sossity sys-jar}
              :default-pipeline-machine-type s/Str
              (s/optional-key :test-output) s/Str})
@@ -37,7 +37,7 @@
 
 (def sources {s/Str source-item})
 
-(def container-item {:image                 s/Str
+(def container-item {
                      :resource-version      s/Str
                      (s/optional-key :error-out) s/Bool
                      (s/optional-key :args) {s/Any s/Any}})
