@@ -135,7 +135,7 @@
 (defn container-dependencies [g node conf]
   "return [{name:ip}] of containers that a dataflow job might depend on for external data"
   (let [containers (attr g node :container-deps)]
-    (mapv #(assoc {} % (str "${googlecli_container_replica_controller." % ".external_ip}")) containers)))
+    (mapv #(assoc {} % (str "${googleappengine_app." % ".moduleName}" ".appspot.com")) containers)))
 
 (defn join-containers [deps]
   (if (> (count deps) 0)
@@ -192,7 +192,7 @@
   (if (and (= "gcs" (attr g node :type)) (attr g node :bucket))
     {(attr g node :bucket) {:name (attr g node :bucket) :force_destroy (or (attr g node :force_destroy) default-force-bucket-destroy) :location default-bucket-location}}))
 
-(defn create-appengine-module
+(defn create-appengine-source
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
   {node {:moduleName  node :version "init"
@@ -200,6 +200,49 @@
          :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
          {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName   (attr g (first (out-edges g node)) :topic)}})
+
+
+(defn create-appengine-sink
+  "Creates a sink using app engine"
+  [node g conf]
+  (let [item_name (clojure.string/lower-case (str node "-sink"))
+        proj_name (:project conf)
+        resource_version (get-in conf [:config-file :config :sink-resource-version])
+        sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
+        bucket_name (attr g node :bucket)
+        sink_type (attr g node :sink_type)
+        rsys_table (attr g node :rsys_table)
+        rsys_pass (attr g node :rsys_pass)
+        rsys_user (attr g node :rsys_user)
+        merge_insert (attr g node :merge_insert)
+        depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
+                     (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
+                                     s))
+        error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)) ]
+     {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
+                 :depends_on depends-on
+           :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
+                        {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+           :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
+                         :sink_type   sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}
+           }}))
+
+
+(defn create-appengine-dep
+  "Creates an external dependency using app engine"
+  [node g conf]
+  (let [item_name (clojure.string/lower-case node)
+        proj_name (:project conf)
+        resource_version (attr g node :resource-version)
+        env_args (assoc (attr g node :args) :proj_name proj_name)
+        ]
+    {item_name {:moduleName item_name :version "init" :env_args env_args
+           :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [resource_version] :gstorageBucket gstoragebucket
+
+                :scaling{:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+           }}))
+
+
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
@@ -263,7 +306,7 @@
   (apply merge (map #(assoc-in {} [(attr g % :name) :name] (attr g % :name)) (edges g))))
 
 (defn create-sources [g conf]
-  (apply merge (map #(create-appengine-module % g conf)
+  (apply merge (map #(create-appengine-source % g conf)
                     (u/filter-node-attrs g :exec :source))))
 
 (defn output-bq-datasets [g]
@@ -274,17 +317,17 @@
   (apply merge (map #(create-bq-table g %)
                     (u/filter-node-attrs g :type "bq"))))
 
-(defn out-sinks [g]
+(defn out-sinks [g]                                         ;was this ever used?
   (let [sinks (u/filter-node-attrs g :exec :sink)]
     (filter #(or (not (attr g % :error))
                  (and (attr g % :error-out) (parent-error-enabled? g %))) sinks)))
 
 (defn output-sinks [g conf]
-  (apply merge (map #(create-sink-container g % conf) (u/filter-node-attrs g :exec :sink))))
+  (apply merge (map #(create-appengine-sink % g conf) (u/filter-node-attrs g :exec :sink))))
 
 (defn output-containers [g conf]
   (let [containers (u/filter-node-attrs g :exec :container)]
-    (apply merge (map #(create-container g % conf) containers))))
+    (apply merge (map #(create-appengine-dep % g conf) containers))))
 
 (defn output-subs [g]
   (apply merge (map #(create-subs g %) (u/filter-node-attrs g :type "gcs"))))
@@ -343,11 +386,11 @@
         bigquery-datasets {:googlebigquery_dataset (output-bq-datasets g)}
         bigquery-tables {:googlebigquery_table (output-bq-tables g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
-        container-cluster {:google_container_cluster (output-container-cluster a-graph)}
-        sources {:googleappengine_app (create-sources g conf)}
-        controllers {:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
+        #_container-cluster #_#{:google_container_cluster (output-container-cluster a-graph)}
+        sources {:googleappengine_app (apply merge (create-sources g conf) (output-sinks g conf) (output-containers g conf))}
+        #_controllers #_ {:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
-                  :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
+                  :resource (merge pubsubs subscriptions #_container-cluster #_controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
         out (clojure.string/trim (generate-string filtered-out {:pretty true}))]
 

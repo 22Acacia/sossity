@@ -166,7 +166,7 @@
                                                           :pipelineName      "pipeline1bts",
                                                           :maxNumWorkers     1}} :resource_hashes)})
 
-(deftest test-small-graph
+#_(deftest test-small-graph
   (let [g (create-parsed-output small-test-gr)]
     (testing "Test the minimum viable graph provider"
       (is-nil-diff? sm-provider (:provider g)))
@@ -573,7 +573,7 @@
                                                     :maxPendingLatency "6s"},
                                  :topicName        "projects/hx-test/topics/orion"}})
 
-(deftest test-big-graph
+#_(deftest test-big-graph
   (let [g (create-parsed-output big-test-gr)]
     (testing "Test the minimum viable graph provider"
       (is-nil-diff? big-provider (:provider g)))
@@ -645,7 +645,7 @@
 
 ;NOTE -- need to have some kind of 'refresh' workflow since we may be defing/undefing in a work session
 
-(deftest add-bq
+#_(deftest add-bq
   (let [g (create-parsed-output bq-graph)]
     (testing "Test new dataflow for bigquery"
       (is-nil-diff? bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq])))

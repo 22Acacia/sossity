@@ -21,7 +21,7 @@
                            :machine_type "n1-standard-4"}}
  :opts      {:maxNumWorkers   1 :numWorkers 1 :zone "europe-west1-c"
              :stagingLocation "gs://hx-test/staging-eu"}
- :containers {"riidb" {:image "gcr.io/hx-trial/responsys-resource:latest" :resource-version "v5"}}
+ :containers {"responsys-resource" {:resource-version "v5"}}
  :provider  {:credentials "${file(\"/home/ubuntu/demo-config/account.json\")}" :project "hx-test"}
  :pipelines {}
  :sources   {"stream1bts" {:type "kub"}}
