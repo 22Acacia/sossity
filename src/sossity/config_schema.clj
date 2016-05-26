@@ -37,7 +37,8 @@
 
 (def sources {s/Str source-item})
 
-(def container-item {
+(def container-item { :gstorageBucket s/Str
+                     :gstorageKey s/Str
                      :resource-version      s/Str
                      (s/optional-key :error-out) s/Bool
                      (s/optional-key :args) {s/Any s/Any}})
