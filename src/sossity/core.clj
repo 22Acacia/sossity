@@ -234,10 +234,12 @@
   (let [item_name (clojure.string/lower-case node)
         proj_name (:project conf)
         resource_version (attr g node :resource-version)
+        gstorageKey (attr g node :gstorageKey)
+        gstorageBucket (attr g node :gstorageBucket)
         env_args (assoc (attr g node :args) :proj_name proj_name)
         ]
     {item_name {:moduleName item_name :version "init" :env_args env_args :threadsafe true :runtime "python27"
-           :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [resource_version] :gstorageBucket gstoragebucket
+           :gstorageKey gstorageKey :resource_version [resource_version] :gstorageBucket gstorageBucket
 
                 :scaling{:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
            }}))
