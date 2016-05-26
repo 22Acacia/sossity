@@ -195,7 +195,7 @@
 (defn create-appengine-source
   "Creates a rest endpont and a single pubsub -- the only time we restrict to a single output"
   [node g conf]
-  {node {:moduleName  node :version "init"
+  {node {:moduleName  node :version "init" :runtime "java7"
          :depends_on  [(str "google_pubsub_topic." node)]
          :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
          {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
