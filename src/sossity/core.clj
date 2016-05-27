@@ -220,7 +220,7 @@
                                      s))
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)) ]
      {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
-                 :depends_on depends-on
+                 :depends_on depends-on :pythonUrlRegex = "/.*" :scriptName "main.app"
            :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
                         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
            :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
@@ -234,9 +234,10 @@
   (let [item_name (clojure.string/lower-case node)
         proj_name (:project conf)
         resource_version (attr g node :resource-version)
+        script_name (attr g node :scriptName)
         env_args (assoc (attr g node :args) :proj_name proj_name)
         ]
-    {item_name {:moduleName item_name :version "init" :env_args env_args
+    {item_name {:moduleName item_name :version "init" :env_args env_args :pythonUrlRegex = "/.*" :scriptName script_name
            :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [resource_version] :gstorageBucket gstoragebucket
 
                 :scaling{:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
