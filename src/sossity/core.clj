@@ -220,7 +220,11 @@
                                      s))
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)) ]
      {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
+
                  :depends_on depends-on :threadsafe true :runtime "python27"
+
+                  :pythonUrlRegex = "/.*" :scriptName "main.app"
+
            :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
                         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
            :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
@@ -237,10 +241,10 @@
         gstorageKey (attr g node :gstorageKey)
         gstorageBucket (attr g node :gstorageBucket)
         env_args (assoc (attr g node :args) :proj_name proj_name)
+        script_name (attr g node :scriptName)
         ]
     {item_name {:moduleName item_name :version "init" :env_args env_args :threadsafe true :runtime "python27"
-           :gstorageKey gstorageKey :resource_version [resource_version] :gstorageBucket gstorageBucket
-
+           :gstorageKey gstorageKey :resource_version [resource_version] :gstorageBucket gstorageBucket :scriptName script_name :pythonUrlRegex = "/.*"
                 :scaling{:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
            }}))
 
