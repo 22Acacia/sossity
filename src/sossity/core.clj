@@ -201,7 +201,6 @@
          {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName   (attr g (first (out-edges g node)) :topic)}})
 
-
 (defn create-appengine-sink
   "Creates a sink using app engine"
   [node g conf]
@@ -220,11 +219,7 @@
                                      s))
         error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)) ]
      {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
-
-                 :depends_on depends-on :threadsafe true :runtime "python27"
-
-                  :pythonUrlRegex = "/.*" :scriptName "main.app"
-
+                 :depends_on depends-on :threadsafe true :runtime "python27" :scriptName "main.app" :pythonUrlRegex  "/.*"
            :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
                         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
            :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
@@ -241,14 +236,10 @@
         gstorageKey (attr g node :gstorageKey)
         gstorageBucket (attr g node :gstorageBucket)
         env_args (assoc (attr g node :args) :proj_name proj_name)
-        script_name (attr g node :scriptName)
-        ]
+        script_name (attr g node :scriptName)]
     {item_name {:moduleName item_name :version "init" :env_args env_args :threadsafe true :runtime "python27"
-           :gstorageKey gstorageKey :resource_version [resource_version] :gstorageBucket gstorageBucket :scriptName script_name :pythonUrlRegex = "/.*"
-                :scaling{:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
-           }}))
-
-
+                :gstorageKey gstorageKey :resource_version [resource_version] :gstorageBucket gstorageBucket :scriptName script_name :pythonUrlRegex "/.*"
+                :scaling {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}}}))
 
 (defn create-dataflow-job                                ;build the right classpath, etc. composer should take all the jars in the classpath and glue them together like the transform-jar?
   [g node conf]
@@ -275,9 +266,9 @@
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
 }
         opt-map (if-not (= (attr g node :type) "bq")
-                   (assoc opt-map :outputTopics output-topic)
-                   opt-map)
-        opt-mapb (if-not (empty? resource-hashes) (assoc opt-map :stringHashes (clojure.string/join "," resource-hashes )) opt-map)
+                  (assoc opt-map :outputTopics output-topic)
+                  opt-map)
+        opt-mapb (if-not (empty? resource-hashes) (assoc opt-map :stringHashes (clojure.string/join "," resource-hashes)) opt-map)
         bucket-opt-map {:bucket (attr g node :bucket)}
         bq-opts (if (is-bigquery? g node) (dissoc (dissoc (attrs g node) :type) :exec))
         optional-args (apply merge opt-mapb (get-in conf [:config-file :opts]) (if (:bucket bucket-opt-map) bucket-opt-map) bq-opts {:containerDeps container-deps} {:workerMachineType workerMachineType})
@@ -394,7 +385,7 @@
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         #_container-cluster #_#{:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (apply merge (create-sources g conf) (output-sinks g conf) (output-containers g conf))}
-        #_controllers #_ {:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
+        #_controllers #_{:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
                   :resource (merge pubsubs subscriptions #_container-cluster #_controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)

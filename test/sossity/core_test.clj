@@ -167,23 +167,23 @@
                                                           :maxNumWorkers     1}} :resource_hashes)})
 
 #_(deftest test-small-graph
-  (let [g (create-parsed-output small-test-gr)]
-    (testing "Test the minimum viable graph provider"
-      (is-nil-diff? sm-provider (:provider g)))
-    (testing "Pubsub topics"
-      (is-nil-diff? sm-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
-    (testing "Pusub subs"
-      (is-nil-diff? sm-pubsub-subs (get-in g [:resource :google_pubsub_subscription])))
-    (testing "container cluster"
-      (is-nil-diff? sm-container-cluster (get-in g [:resource :google_container_cluster])))
-    (testing "appengine nodes"
-      (is-nil-diff? sm-appengine (get-in g [:resource :googleappengine_app])))
-    (testing "Replica controllers"
-      (is-nil-diff? sm-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
-    (testing "Storage buckets"
-      (is-nil-diff? sm-bucket (get-in g [:resource :google_storage_bucket])))
-    (testing "Dataflows"
-      (is-nil-diff? sm-dataflows (get-in g [:resource :googlecli_dataflow])))))
+    (let [g (create-parsed-output small-test-gr)]
+      (testing "Test the minimum viable graph provider"
+        (is-nil-diff? sm-provider (:provider g)))
+      (testing "Pubsub topics"
+        (is-nil-diff? sm-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
+      (testing "Pusub subs"
+        (is-nil-diff? sm-pubsub-subs (get-in g [:resource :google_pubsub_subscription])))
+      (testing "container cluster"
+        (is-nil-diff? sm-container-cluster (get-in g [:resource :google_container_cluster])))
+      (testing "appengine nodes"
+        (is-nil-diff? sm-appengine (get-in g [:resource :googleappengine_app])))
+      (testing "Replica controllers"
+        (is-nil-diff? sm-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
+      (testing "Storage buckets"
+        (is-nil-diff? sm-bucket (get-in g [:resource :google_storage_bucket])))
+      (testing "Dataflows"
+        (is-nil-diff? sm-dataflows (get-in g [:resource :googlecli_dataflow])))))
 
 (def big-test-gr
   {:config     {:remote-composer-classpath     "/usr/local/lib/angleddream-bundled.jar"
@@ -574,23 +574,23 @@
                                  :topicName        "projects/hx-test/topics/orion"}})
 
 #_(deftest test-big-graph
-  (let [g (create-parsed-output big-test-gr)]
-    (testing "Test the minimum viable graph provider"
-      (is-nil-diff? big-provider (:provider g)))
-    (testing "Pubsub topics"
-      (is-nil-diff? big-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
-    (testing "Pusub subs"
-      (is-nil-diff? big-pubsub-subs (get-in g [:resource :google_pubsub_subscription])))
-    (testing "container cluster"
-      (is-nil-diff? big-container-cluster (get-in g [:resource :google_container_cluster])))
-    (testing "app engine"
-      (is-nil-diff? big-appengine (get-in g [:resource :googleappengine_app])))
-    (testing "Replica controllers"
-      (is-nil-diff? big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
-    (testing "Storage buckets"
-      (is-nil-diff? big-bucket (get-in g [:resource :google_storage_bucket])))
-    (testing "Dataflows"
-      (is-nil-diff? big-dataflows (get-in g [:resource :googlecli_dataflow])))))
+    (let [g (create-parsed-output big-test-gr)]
+      (testing "Test the minimum viable graph provider"
+        (is-nil-diff? big-provider (:provider g)))
+      (testing "Pubsub topics"
+        (is-nil-diff? big-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
+      (testing "Pusub subs"
+        (is-nil-diff? big-pubsub-subs (get-in g [:resource :google_pubsub_subscription])))
+      (testing "container cluster"
+        (is-nil-diff? big-container-cluster (get-in g [:resource :google_container_cluster])))
+      (testing "app engine"
+        (is-nil-diff? big-appengine (get-in g [:resource :googleappengine_app])))
+      (testing "Replica controllers"
+        (is-nil-diff? big-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
+      (testing "Storage buckets"
+        (is-nil-diff? big-bucket (get-in g [:resource :google_storage_bucket])))
+      (testing "Dataflows"
+        (is-nil-diff? big-dataflows (get-in g [:resource :googlecli_dataflow])))))
 
 (def bq-graph
   (-> big-test-gr
@@ -646,23 +646,23 @@
 ;NOTE -- need to have some kind of 'refresh' workflow since we may be defing/undefing in a work session
 
 #_(deftest add-bq
-  (let [g (create-parsed-output bq-graph)]
-    (testing "Test new dataflow for bigquery"
-      (is-nil-diff? bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq])))
-    (testing "Test the minimum viable graph provider"
-      (is-nil-diff? big-provider (:provider g)))
-    (testing "Pubsub topics"
-      (is-nil-diff? bq-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
-    (testing "Pusub subs"
-      (is-nil-diff? bq-subs (get-in g [:resource :google_pubsub_subscription])))
-    (testing "container cluster"
-      (is-nil-diff? big-container-cluster (get-in g [:resource :google_container_cluster])))
-    (testing "Replica controllers"
-      (is-nil-diff? bq-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
-    (testing "Datasets"
-      (is-nil-diff? bq-datasets (get-in g [:resource :googlebigquery_dataset])))
-    (testing "Tables"
-      (is-nil-diff? bq-tables (get-in g [:resource :googlebigquery_table])))
-    (testing "Storage buckets"
-      (is-nil-diff? bq-buckets (get-in g [:resource :google_storage_bucket])))))
+    (let [g (create-parsed-output bq-graph)]
+      (testing "Test new dataflow for bigquery"
+        (is-nil-diff? bq-dataflow (get-in g [:resource :googlecli_dataflow :orionbq])))
+      (testing "Test the minimum viable graph provider"
+        (is-nil-diff? big-provider (:provider g)))
+      (testing "Pubsub topics"
+        (is-nil-diff? bq-pubsub-tops (get-in g [:resource :google_pubsub_topic])))
+      (testing "Pusub subs"
+        (is-nil-diff? bq-subs (get-in g [:resource :google_pubsub_subscription])))
+      (testing "container cluster"
+        (is-nil-diff? big-container-cluster (get-in g [:resource :google_container_cluster])))
+      (testing "Replica controllers"
+        (is-nil-diff? bq-replica-controllers (get-in g [:resource :googlecli_container_replica_controller])))
+      (testing "Datasets"
+        (is-nil-diff? bq-datasets (get-in g [:resource :googlebigquery_dataset])))
+      (testing "Tables"
+        (is-nil-diff? bq-tables (get-in g [:resource :googlebigquery_table])))
+      (testing "Storage buckets"
+        (is-nil-diff? bq-buckets (get-in g [:resource :google_storage_bucket])))))
 
