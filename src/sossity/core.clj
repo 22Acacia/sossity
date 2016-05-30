@@ -135,7 +135,7 @@
 (defn container-dependencies [g node conf]
   "return [{name:ip}] of containers that a dataflow job might depend on for external data"
   (let [containers (attr g node :container-deps)]
-    (mapv #(assoc {} % (str "${googleappengine_app." % ".moduleName}" ".appspot.com")) containers)))
+    (mapv #(assoc {} % (str "${googleappengine_app." % ".moduleName}-dot-" (:project conf) ".appspot.com")) containers)))
 
 (defn join-containers [deps]
   (if (> (count deps) 0)
