@@ -387,8 +387,8 @@
         bigquery-tables {:googlebigquery_table (output-bq-tables g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
         container-cluster {:google_container_cluster (output-container-cluster a-graph)}
-        sources {:googleappengine_app (apply merge (create-sources g conf) (output-sinks g conf) (output-containers g conf))}
-        controllers {:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
+        sources {:googleappengine_app (apply merge (create-sources g conf) (output-containers g conf))}
+        controllers {:googlecli_container_replica_controller (output-sinks g conf)}
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
                   :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
