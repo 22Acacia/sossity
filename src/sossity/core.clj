@@ -201,7 +201,7 @@
          {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName   (attr g (first (out-edges g node)) :topic)}})
 
-(defn create-appengine-sink
+#_(defn create-appengine-sink
   "Creates a sink using app engine"
   [node g conf]
   (let [item_name (clojure.string/lower-case (str node "-sink"))
@@ -319,8 +319,11 @@
     (filter #(or (not (attr g % :error))
                  (and (attr g % :error-out) (parent-error-enabled? g %))) sinks)))
 
-(defn output-sinks [g conf]
+#_(defn output-sinks [g conf]
   (apply merge (map #(create-appengine-sink % g conf) (u/filter-node-attrs g :exec :sink))))
+
+(defn output-sinks [g conf]
+  (apply merge (map #(create-sink-container g % conf) (u/filter-node-attrs g :exec :sink))))
 
 (defn output-containers [g conf]
   (let [containers (u/filter-node-attrs g :exec :container)]
@@ -383,11 +386,11 @@
         bigquery-datasets {:googlebigquery_dataset (output-bq-datasets g)}
         bigquery-tables {:googlebigquery_table (output-bq-tables g)}
         dataflows {:googlecli_dataflow (create-dataflow-jobs g conf)}
-        #_container-cluster #_#{:google_container_cluster (output-container-cluster a-graph)}
+        container-cluster {:google_container_cluster (output-container-cluster a-graph)}
         sources {:googleappengine_app (apply merge (create-sources g conf) (output-sinks g conf) (output-containers g conf))}
-        #_controllers #_{:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
+        controllers {:googlecli_container_replica_controller (apply merge (output-sinks g conf) (output-containers g conf))}
         combined {:provider (merge goo-provider cli-provider app-provider bq-provider)
-                  :resource (merge pubsubs subscriptions #_container-cluster #_controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
+                  :resource (merge pubsubs subscriptions container-cluster controllers sources buckets dataflows bigquery-datasets bigquery-tables)}
         filtered-out (u/remove-nils combined)
         out (clojure.string/trim (generate-string filtered-out {:pretty true}))]
 

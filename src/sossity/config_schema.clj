@@ -10,6 +10,7 @@
              :sink-resource-version s/Str
              :source-resource-version s/Str
              :appengine-gstoragekey s/Str
+             :default-sink-docker-image s/Str
              :appengine-sinkkey s/Str
              :system-jar-info {:angleddream sys-jar :sossity sys-jar}
              :default-pipeline-machine-type s/Str
