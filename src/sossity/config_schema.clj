@@ -50,6 +50,7 @@
 ;need to have conditionals for bigquery
 (def sink-item {:type s/Str
                 (s/optional-key :bucket) s/Str
+                (s/optional-key :batch_size) s/Str
                 (s/optional-key :bigQueryDataset) s/Str
                 (s/optional-key :bigQueryTable) s/Str
                 (s/optional-key :error-out) s/Bool
