@@ -8,6 +8,7 @@
              :remote-libs-path s/Str
              :error-buckets s/Bool
              :sink-resource-version s/Str
+             :default-error-bucket-batch-size s/Int
              :source-resource-version s/Str
              :appengine-gstoragekey s/Str
              :default-sink-docker-image s/Str

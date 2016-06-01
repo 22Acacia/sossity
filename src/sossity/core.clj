@@ -339,7 +339,7 @@
   [a-graph]
   {:hx_fstack_cluster (create-container-cluster a-graph)})
 
-(defn add-error-sink-node [g parent]
+(defn add-error-sink-node [g parent conf]
   (let [name (str parent "-error")]
     (-> g
         (add-nodes name)
@@ -347,6 +347,7 @@
         (add-attr name :exec :sink)
         (add-attr name :bucket name)
         (add-attr name :error true)
+        (add-attr name :batch_size (get-in conf [:config-file :config :default-error-bucket-batch-size ]))
         #_(add-attr name :run (parent-error-enabled? g name))
         (add-edges [parent name])
         (add-attr-to-edges :type :error [[parent name]]))))
@@ -356,9 +357,9 @@
 
 (defn add-error-sinks
   "Add error sinks to every non-source item on the graph. Sources don't have errors because they should return a 4xx or 5xx when something gone wrong"
-  [g]
+  [g conf]
   (let [connected (filter #(> (in-degree g %1) 0) (nodes g))]
-    (reduce #(add-error-sink-node %1 %2) g connected)))
+    (reduce #(add-error-sink-node %1 %2 conf) g connected)))
 
 (defn create-dag
   "the most important fn-- created directed graph, use this to feed all other fns"
@@ -368,7 +369,7 @@
     (-> g
         (add-containers a-graph)
         (anns a-graph)
-        add-error-sinks
+        (add-error-sinks conf)
         (name-edges conf)))                                    ;return the graph?
 )
 
