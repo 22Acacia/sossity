@@ -17,6 +17,19 @@
    [schema.core :as s])
   (:gen-class))
 
+(def VALID-CHARS
+  (map char (concat (range 48 58) ; 0-9
+                    (range 65 91) ; A-Z
+                    (range 97 123)))) ; a-z
+
+(defn random-char []
+  (rand-nth VALID-CHARS))
+
+(defn random-str [length]
+  (apply str (take length (repeatedly random-char))))
+
+(defn sub-suffix [] (str "_sub-" (random-str 6)))
+
 (def app-prefix "googleappengine_app")
 (def df-prefix "googlecli_dataflow")
 (def pt-prefix "google_pubsub_topic")
@@ -27,7 +40,7 @@
 (def sink-container "${google_container_cluster.hx_fstack_cluster.name}")
 (def default-bucket-location "EU")
 (def default-force-bucket-destroy false)
-(def sub-suffix "_sub")
+
 (def external-port 8080)
 (def gstoragebucket "build-artifacts-public-eu")
 (def default-min-idle 1)
@@ -159,14 +172,14 @@
   (let [item_name (clojure.string/lower-case (str node "-sink"))
         proj_name (:project conf)
         resource_version (get-in conf [:config-file :config :sink-resource-version])
-        sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
+        sub_name (str (attr g (first (in-edges g node)) :name) (attr g node :sub-name))
         bucket_name (attr g node :bucket)
         zone (:region conf)
         sink_type (attr g node :sink_type)
         rsys_table (attr g node :rsys_table)
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
-        batch-size (or (attr g node :batch_size) sink-buffer-size )
+        batch-size (or (attr g node :batch_size) sink-buffer-size)
         merge_insert (attr g node :merge_insert)
         depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
                      (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
@@ -179,14 +192,14 @@
                                       :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
     output))
 
-(defn create-sub [g edge]
+(defn create-sub [g edge node]
   "make a subscription for every node of type gcs based on the inbound edge [for now should only be 1 inbound edge]"
-  (let [name (str (attr g edge :name) sub-suffix)
+  (let [name (str (attr g edge :name) (attr g node :sub-name))
         topic (attr g edge :name)]
     {name {:name name :topic topic :depends_on [(str pt-prefix "." (attr g edge :name))]}}))
 
 (defn create-subs [g node]
-  (apply merge (map #(create-sub g %) (in-edges g node))))
+  (apply merge (map #(create-sub g % node) (in-edges g node))))
 
 (defn create-bucket [g node]
   (if (and (= "gcs" (attr g node :type)) (attr g node :bucket))
@@ -202,30 +215,28 @@
          :topicName   (attr g (first (out-edges g node)) :topic)}})
 
 #_(defn create-appengine-sink
-  "Creates a sink using app engine"
-  [node g conf]
-  (let [item_name (clojure.string/lower-case (str node "-sink"))
-        proj_name (:project conf)
-        resource_version (get-in conf [:config-file :config :sink-resource-version])
-        sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
-        bucket_name (attr g node :bucket)
-        sink_type (attr g node :sink_type)
-        rsys_table (attr g node :rsys_table)
-        rsys_pass (attr g node :rsys_pass)
-        rsys_user (attr g node :rsys_user)
-        merge_insert (attr g node :merge_insert)
-        depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
-                     (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
-                                     s))
-        error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic)) ]
-     {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
-                 :depends_on depends-on :threadsafe true :runtime "python27" :scriptName "main.app" :pythonUrlRegex  "/.*"
-           :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
-                        {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
-           :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
-                         :sink_type   sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}
-           }}))
-
+    "Creates a sink using app engine"
+    [node g conf]
+    (let [item_name (clojure.string/lower-case (str node "-sink"))
+          proj_name (:project conf)
+          resource_version (get-in conf [:config-file :config :sink-resource-version])
+          sub_name (str (attr g (first (in-edges g node)) :name) "_sub")
+          bucket_name (attr g node :bucket)
+          sink_type (attr g node :sink_type)
+          rsys_table (attr g node :rsys_table)
+          rsys_pass (attr g node :rsys_pass)
+          rsys_user (attr g node :rsys_user)
+          merge_insert (attr g node :merge_insert)
+          depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
+                       (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
+                           s))
+          error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))]
+      {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
+                  :depends_on depends-on :threadsafe true :runtime "python27" :scriptName "main.app" :pythonUrlRegex  "/.*"
+                  :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
+                  {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+                  :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
+                                :sink_type   sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}))
 
 (defn create-appengine-dep
   "Creates an external dependency using app engine"
@@ -320,7 +331,7 @@
                  (and (attr g % :error-out) (parent-error-enabled? g %))) sinks)))
 
 #_(defn output-sinks [g conf]
-  (apply merge (map #(create-appengine-sink % g conf) (u/filter-node-attrs g :exec :sink))))
+    (apply merge (map #(create-appengine-sink % g conf) (u/filter-node-attrs g :exec :sink))))
 
 (defn output-sinks [g conf]
   (apply merge (map #(create-sink-container g % conf) (u/filter-node-attrs g :exec :sink))))
@@ -347,13 +358,16 @@
         (add-attr name :exec :sink)
         (add-attr name :bucket name)
         (add-attr name :error true)
-        (add-attr name :batch_size (get-in conf [:config-file :config :default-error-bucket-batch-size ]))
+        (add-attr name :batch_size (get-in conf [:config-file :config :default-error-bucket-batch-size]))
         #_(add-attr name :run (parent-error-enabled? g name))
         (add-edges [parent name])
         (add-attr-to-edges :type :error [[parent name]]))))
 
 (defn add-containers [g a-graph]
   (reduce #(add-nodes %1 (key %2)) g (:containers a-graph)))
+
+(defn name-subs [g]
+  (reduce #(add-attr %1 %2 :sub-name (sub-suffix)) g (u/filter-node-attrs g :type "gcs")))
 
 (defn add-error-sinks
   "Add error sinks to every non-source item on the graph. Sources don't have errors because they should return a 4xx or 5xx when something gone wrong"
@@ -370,7 +384,8 @@
         (add-containers a-graph)
         (anns a-graph)
         (add-error-sinks conf)
-        (name-edges conf)))                                    ;return the graph?
+        (name-edges conf)
+        (name-subs)))                                    ;return the graph?
 )
 
 (defn create-terraform-json
