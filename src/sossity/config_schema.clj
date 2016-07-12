@@ -51,6 +51,7 @@
 ;need to have conditionals for bigquery
 (def sink-item {:type s/Str
                 (s/optional-key :bucket) s/Str
+                (s/optional-key :replicas) s/Int
                 (s/optional-key :batch_size) s/Int
                 (s/optional-key :bigQueryDataset) s/Str
                 (s/optional-key :bigQueryTable) s/Str
