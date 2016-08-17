@@ -1,4 +1,4 @@
-# Sossity: Collaborative Pipeline Orchestration.
+# Sossity: Collaborative Stream Processing in the Cloud.
 
 
 See [How Sossity Works](https://github.com/22Acacia/sossity/wiki/How-Sossity-Works) for an overview.
