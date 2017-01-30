@@ -180,6 +180,7 @@
         rsys_table (attr g node :rsys_table)
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
+        dataset_name (attr g node :dataset_name)
         batch-size (or (attr g node :batch_size) sink-buffer-size)
         merge_insert (attr g node :merge_insert)
         depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
@@ -191,7 +192,7 @@
                            :optional_args {:replicas replicas}
                            :docker_image (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone
                            :env_args {:num_retries sink-retries :batch_size batch-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
-                                      :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
+                                      :sink_type sink_type :dataset_name dataset_name :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
     output))
 
 (defn create-sub [g edge node]
@@ -228,6 +229,7 @@
           rsys_table (attr g node :rsys_table)
           rsys_pass (attr g node :rsys_pass)
           rsys_user (attr g node :rsys_user)
+          dataset_name (attr g node :dataset_name)
           merge_insert (attr g node :merge_insert)
           depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
                        (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
@@ -238,7 +240,7 @@
                   :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
                   {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
                   :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
-                                :sink_type   sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}))
+                                :sink_type   sink_type :dataset_name dataset_name :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}))
 
 (defn create-appengine-dep
   "Creates an external dependency using app engine"
