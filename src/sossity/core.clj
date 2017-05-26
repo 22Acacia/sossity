@@ -42,7 +42,6 @@
 (def default-force-bucket-destroy false)
 
 (def external-port 8080)
-(def gstoragebucket "build-artifacts-public-eu")
 (def default-min-idle 1)
 (def default-max-idle 1)
 (def default-min-pending-latency "3s")
@@ -180,6 +179,7 @@
         rsys_table (attr g node :rsys_table)
         rsys_pass (attr g node :rsys_pass)
         rsys_user (attr g node :rsys_user)
+        dataset_name (attr g node :dataset_name)
         batch-size (or (attr g node :batch_size) sink-buffer-size)
         merge_insert (attr g node :merge_insert)
         depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
@@ -191,7 +191,7 @@
                            :optional_args {:replicas replicas}
                            :docker_image (get-in conf [:config-file :config :default-sink-docker-image]) :container_name sink-container :zone zone
                            :env_args {:num_retries sink-retries :batch_size batch-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
-                                      :sink_type sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
+                                      :sink_type sink_type :dataset_name dataset_name :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}]
     output))
 
 (defn create-sub [g edge node]
@@ -212,8 +212,10 @@
   [node g conf]
   {node {:moduleName  node :version "init" :runtime "java7"
          :depends_on  [(str "google_pubsub_topic." node)]
-         :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+         :gstorageKey (str (get-in conf [:config-file :config :source :key]) "/" (get-in conf [:config-file :config :source :name]))
+         :resource_version [(get-in conf [:config-file :config :source-resource-version])]
+         :gstorageBucket (get-in conf [:config-file :config :source :pail])
+         :scaling {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName   (attr g (first (out-edges g node)) :topic)}})
 
 #_(defn create-appengine-sink
@@ -228,17 +230,18 @@
           rsys_table (attr g node :rsys_table)
           rsys_pass (attr g node :rsys_pass)
           rsys_user (attr g node :rsys_user)
+          dataset_name (attr g node :dataset_name)
           merge_insert (attr g node :merge_insert)
           depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
                        (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
-                           s))
+                                       s))
           error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))]
       {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
                   :depends_on depends-on :threadsafe true :runtime "python27" :scriptName "main.app" :pythonUrlRegex  "/.*"
                   :gstorageKey (get-in conf [:config-file :config :appengine-sinkkey]) :gstorageBucket gstoragebucket :scaling
                   {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
                   :env_args    {:num_retries sink-retries :batch_size sink-buffer-size :proj_name proj_name :sub_name sub_name :bucket_name bucket_name :rsys_pass rsys_pass
-                                :sink_type   sink_type :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}))
+                                :sink_type   sink_type :dataset_name dataset_name :rsys_user rsys_user :rsys_table rsys_table :error_topic error-topic :merge_insert merge_insert}}}))
 
 (defn create-appengine-dep
   "Creates an external dependency using app engine"
@@ -277,7 +280,7 @@
         opt-map {:pubsubTopic       (clojure.string/join (interpose "," input-topics))
                  :pipelineName      node
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
-}
+                 }
         opt-map (if-not (= (attr g node :type) "bq")
                   (assoc opt-map :outputTopics output-topic)
                   opt-map)
@@ -388,7 +391,7 @@
         (add-error-sinks conf)
         (name-edges conf)
         (name-subs)))                                    ;return the graph?
-)
+  )
 
 (defn create-terraform-json
   [a-graph]
@@ -493,4 +496,3 @@
                 (do
                   (read-and-create conf (:output opts))
                   (println "Terraform file created"))))))))
-
