@@ -7,8 +7,15 @@ test:
    - lein test
 
 deployment:
-  demo:
+  hx-trial:
     branch: master
     commands:
       - $HOME/$CIRCLE_PROJECT_REPONAME/deploy_project.sh
-
+  buildstaging:
+    tag: /^(v[0-9]{1,3})+(\.[0-9]{1,3}){2}-rc$/
+    commands:
+      - $HOME/$CIRCLE_PROJECT_REPONAME/deploy_project.sh STAGING
+  buildproduction:
+    tag: /^(v[0-9]{1,3})+(\.[0-9]{1,3}){2}$/
+    commands:
+      - $HOME/$CIRCLE_PROJECT_REPONAME/deploy_project.sh PRODUCTION
