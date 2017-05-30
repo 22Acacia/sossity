@@ -14,14 +14,10 @@ PROJECT="hx-trial"
 if [ -n "$1" ]; then
   if [ $1 == "STAGING" ]; then
     PROJECT="hx-data-staging"
-    NEXT_PROJECT=$NEXT_PROJECT_STAGING
-    CIRCLE_TOKEN=$CIRCLE_TOKEN_STAGING
   fi
 
   if [ $1 == "PRODUCTION" ]; then
     PROJECT="hx-data-production"
-    NEXT_PROJECT=$NEXT_PROJECT_PRODUCTION
-    CIRCLE_TOKEN=$CIRCLE_TOKEN_PRODUCTION
   fi
 fi
 
@@ -54,6 +50,3 @@ if [ $ret -ne 0 ]; then
   echo "Failed to update bucket ACL to public"
   exit $ret
 fi
-
-
-curl -XPOST https://circleci.com/api/v1/project/${GITHUB_ORG}/${NEXT_PROJECT}/tree/master?circle-token=$CIRCLE_TOKEN
