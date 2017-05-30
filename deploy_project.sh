@@ -10,6 +10,21 @@ if [ $ret -ne 0 ]; then
   exit $ret
 fi
 
+PROJECT="hx-trial"
+if [ -n "$1" ]; then
+  if [ $1 == "STAGING" ]; then
+    PROJECT="hx-data-staging"
+    NEXT_PROJECT=$NEXT_PROJECT_STAGING
+    CIRCLE_TOKEN=$CIRCLE_TOKEN_STAGING
+  fi
+
+  if [ $1 == "PRODUCTION" ]; then
+    PROJECT="hx-data-production"
+    NEXT_PROJECT=$NEXT_PROJECT_PRODUCTION
+    CIRCLE_TOKEN=$CIRCLE_TOKEN_PRODUCTION
+  fi
+fi
+
 #  write out jar file versions and names to VERSIONS.txt file and save the 
 #  application name to an env var
 app_name=`ls -1 target/*.jar  | cut -d "/" -f 2 | tee VERSIONS.txt | grep -v original | tail -n 1 | cut -d "-" -f 1`
@@ -19,21 +34,21 @@ echo $GOOGLE_CREDENTIALS > account.json
 /opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file account.json
 set -x
 
-gsutil cp target/*.jar gs://${GSTORAGE_DEST_BUCKET}/${app_name}
+gsutil cp target/*.jar gs://${GSTORAGE_DEST_BUCKET}/${PROJECT}/${app_name}
 ret=$?
 if [ $ret -ne 0 ]; then
   echo "Failed to cp jar files to gstorage"
   exit $ret
 fi
 
-gsutil cp VERSIONS.txt gs://${GSTORAGE_DEST_BUCKET}/${app_name}
+gsutil cp VERSIONS.txt gs://${GSTORAGE_DEST_BUCKET}/${PROJECT}/${app_name}
 ret=$?
 if [ $ret -ne 0 ]; then
   echo "Failed to cp VERSIONS.txt to gstorage"
   exit $ret
 fi
 
-gsutil acl -r ch -u AllUsers:R gs://${GSTORAGE_DEST_BUCKET}/${app_name}
+gsutil acl -r ch -u AllUsers:R gs://${GSTORAGE_DEST_BUCKET}/${PROJECT}/${app_name}
 ret=$?
 if [ $ret -ne 0 ]; then
   echo "Failed to update bucket ACL to public"
@@ -41,4 +56,4 @@ if [ $ret -ne 0 ]; then
 fi
 
 
-curl -XPOST https://circleci.com/api/v1/project/22acacia/demo-config/tree/master?circle-token=$CIRCLE_TOKEN
+curl -XPOST https://circleci.com/api/v1/project/${GITHUB_ORG}/${NEXT_PROJECT}/tree/master?circle-token=$CIRCLE_TOKEN
