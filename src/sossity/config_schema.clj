@@ -1,6 +1,5 @@
 (ns sossity.config-schema
-  (:require
-   [schema.core :as s]))
+  (:require [schema.core :as s]))
 
 (def sys-jar {:name s/Str :pail s/Str :key s/Str})
 
@@ -10,7 +9,7 @@
              :sink-resource-version s/Str
              :default-error-bucket-batch-size s/Int
              :source-resource-version s/Str
-             :appengine-gstoragekey s/Str
+             :source {:name s/Str :pail s/Str :key s/Str}
              :default-sink-docker-image s/Str
              :appengine-sinkkey s/Str
              :system-jar-info {:angleddream sys-jar :sossity sys-jar}
@@ -19,8 +18,7 @@
 
 (def cluster {:name s/Str :initial_node_count s/Int :master_auth {:username s/Str :password s/Str} :node_config {:oauth_scopes [s/Str] :machine_type s/Str}})
 
-(def opts {:maxNumWorkers s/Int :numWorkers s/Int :zone s/Str :autoscalingAlgorithm s/Str
-           :stagingLocation s/Str})
+(def opts {:maxNumWorkers s/Int :numWorkers s/Int :zone s/Str :autoscalingAlgorithm s/Str :stagingLocation s/Str})
 
 (def provider {:credentials s/Str :project s/Str})
 

@@ -17,18 +17,7 @@
    [schema.core :as s])
   (:gen-class))
 
-(def VALID-CHARS
-  (map char (concat (range 48 58) ; 0-9
-                    (range 65 91) ; A-Z
-                    (range 97 123)))) ; a-z
-
-(defn random-char []
-  (rand-nth VALID-CHARS))
-
-(defn random-str [length]
-  (apply str (take length (repeatedly random-char))))
-
-(defn sub-suffix [] (str "_sub-" (random-str 6)))
+(defn sub-suffix [] (str "-sub-"))
 
 (def app-prefix "googleappengine_app")
 (def df-prefix "googlecli_dataflow")
@@ -42,7 +31,6 @@
 (def default-force-bucket-destroy false)
 
 (def external-port 8080)
-(def gstoragebucket "build-artifacts-public-eu")
 (def default-min-idle 1)
 (def default-max-idle 1)
 (def default-min-pending-latency "3s")
@@ -172,7 +160,7 @@
   (let [item_name (clojure.string/lower-case (str node "-sink"))
         proj_name (:project conf)
         resource_version (get-in conf [:config-file :config :sink-resource-version])
-        sub_name (str (attr g (first (in-edges g node)) :name) (attr g node :sub-name))
+        sub_name (str (attr g (first (in-edges g node)) :name) (attr g node :sub-name) (clojure.string/lower-case (str node)))
         bucket_name (attr g node :bucket)
         zone (:region conf)
         replicas (or (attr g node :replicas) 1)
@@ -197,7 +185,7 @@
 
 (defn create-sub [g edge node]
   "make a subscription for every node of type gcs based on the inbound edge [for now should only be 1 inbound edge]"
-  (let [name (str (attr g edge :name) (attr g node :sub-name))
+  (let [name (str (attr g edge :name) (attr g node :sub-name) (clojure.string/lower-case (str node)))
         topic (attr g edge :name)]
     {name {:name name :topic topic :depends_on [(str pt-prefix "." (attr g edge :name))]}}))
 
@@ -213,8 +201,10 @@
   [node g conf]
   {node {:moduleName  node :version "init" :runtime "java7"
          :depends_on  [(str "google_pubsub_topic." node)]
-         :gstorageKey (get-in conf [:config-file :config :appengine-gstoragekey]) :resource_version [(get-in conf [:config-file :config :source-resource-version])] :gstorageBucket gstoragebucket :scaling
-         {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
+         :gstorageKey (str (get-in conf [:config-file :config :source :key]) "/" (get-in conf [:config-file :config :source :name]))
+         :resource_version [(get-in conf [:config-file :config :source-resource-version])]
+         :gstorageBucket (get-in conf [:config-file :config :source :pail])
+         :scaling {:minIdleInstances default-min-idle :maxIdleInstances default-max-idle :minPendingLatency default-min-pending-latency :maxPendingLatency default-max-pending-latency}
          :topicName   (attr g (first (out-edges g node)) :topic)}})
 
 #_(defn create-appengine-sink
@@ -233,7 +223,7 @@
           merge_insert (attr g node :merge_insert)
           depends-on (let    [s [(str "google_pubsub_subscription." sub_name)]]
                        (if bucket_name (conj s (str "google_storage_bucket." bucket_name))
-                           s))
+                                       s))
           error-topic (if (< 0 (count (out-edges g node))) (attr g (first (u/filter-edge-attrs g :type :error (out-edges g node))) :topic))]
       {item_name {:moduleName item_name :version "init" :resource_version [resource_version]
                   :depends_on depends-on :threadsafe true :runtime "python27" :scriptName "main.app" :pythonUrlRegex  "/.*"
@@ -279,7 +269,7 @@
         opt-map {:pubsubTopic       (clojure.string/join (interpose "," input-topics))
                  :pipelineName      node
                  :errorPipelineName error-topic                  ; :experiments "enable_streaming_scaling" ; :autoscalingAlgorithm "THROUGHPUT_BASED"
-}
+                 }
         opt-map (if-not (= (attr g node :type) "bq")
                   (assoc opt-map :outputTopics output-topic)
                   opt-map)
@@ -390,7 +380,7 @@
         (add-error-sinks conf)
         (name-edges conf)
         (name-subs)))                                    ;return the graph?
-)
+  )
 
 (defn create-terraform-json
   [a-graph]
@@ -495,4 +485,3 @@
                 (do
                   (read-and-create conf (:output opts))
                   (println "Terraform file created"))))))))
-
