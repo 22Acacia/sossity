@@ -17,18 +17,7 @@
    [schema.core :as s])
   (:gen-class))
 
-(def VALID-CHARS
-  (map char (concat (range 48 58) ; 0-9
-                    (range 65 91) ; A-Z
-                    (range 97 123)))) ; a-z
-
-(defn random-char []
-  (rand-nth VALID-CHARS))
-
-(defn random-str [length]
-  (apply str (take length (repeatedly random-char))))
-
-(defn sub-suffix [] (str "_sub-" (random-str 6)))
+(defn sub-suffix [] (str "-sub-"))
 
 (def app-prefix "googleappengine_app")
 (def df-prefix "googlecli_dataflow")
@@ -171,7 +160,7 @@
   (let [item_name (clojure.string/lower-case (str node "-sink"))
         proj_name (:project conf)
         resource_version (get-in conf [:config-file :config :sink-resource-version])
-        sub_name (str (attr g (first (in-edges g node)) :name) (attr g node :sub-name))
+        sub_name (str (attr g (first (in-edges g node)) :name) (clojure.string/lower-case (str node)))
         bucket_name (attr g node :bucket)
         zone (:region conf)
         replicas (or (attr g node :replicas) 1)
