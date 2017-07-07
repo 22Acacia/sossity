@@ -160,7 +160,7 @@
   (let [item_name (clojure.string/lower-case (str node "-sink"))
         proj_name (:project conf)
         resource_version (get-in conf [:config-file :config :sink-resource-version])
-        sub_name (str (attr g (first (in-edges g node)) :name) (clojure.string/lower-case (str node)))
+        sub_name (str (attr g (first (in-edges g node)) :name) (attr g node :sub-name) (clojure.string/lower-case (str node)))
         bucket_name (attr g node :bucket)
         zone (:region conf)
         replicas (or (attr g node :replicas) 1)
@@ -185,7 +185,7 @@
 
 (defn create-sub [g edge node]
   "make a subscription for every node of type gcs based on the inbound edge [for now should only be 1 inbound edge]"
-  (let [name (str (attr g edge :name) (attr g node :sub-name))
+  (let [name (str (attr g edge :name) (attr g node :sub-name) (clojure.string/lower-case (str node)))
         topic (attr g edge :name)]
     {name {:name name :topic topic :depends_on [(str pt-prefix "." (attr g edge :name))]}}))
 
