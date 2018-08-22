@@ -14,7 +14,7 @@ You should almost never need to build Sossity for testing or simulation. Instead
 
 
 
-1. Install Oracle JDK8
+1. Install Oracle JDK9
 1. Install leiningen, be sure to set it to the appropriate environment variable https://github.com/technomancy/leiningen
 1. `lein uberjar`
 1. Use the `sossity{ver}-standalone.jar`
