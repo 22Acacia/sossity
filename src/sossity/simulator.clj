@@ -47,7 +47,7 @@
       (recur))))
 
 (defn construct [klass & args]
-  (clojure.lang.Reflector/invokeConstructor (. Class forName klass) (to-array args)))
+  (clojure.lang.Reflector/invokeConstructor (. Class forName klass)    (to-array args)))
 
 (defn dummy-topic
   ([x]
